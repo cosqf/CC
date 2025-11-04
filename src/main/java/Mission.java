@@ -10,6 +10,15 @@ public class Mission {
         EXPLORE,
         COLLECT_ROCKS,
         TEST_ATMOSPHERE,
-        BUILD_BASE
+    }
+
+    int counter = 1;
+
+    public Mission(MissionType mtype, String area, int dur){
+        this.id = counter;
+        counter++;
+        this.missionType = mtype;
+        this.area = area;
+        this.duration = dur;
     }
 }
