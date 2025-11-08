@@ -1,20 +1,40 @@
+import Message.Message;
+import Message.RoverTelemetryMessage;
 import Rover.Rover;
+import Rover.PhysicalState;
+import Utils.Point3D;
+import Message.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class Main { // ground control
     static void main() throws IOException {
-        System.out.println("Hello world");
+        //testing message conversions
+        ArrayList <String> inventory = new ArrayList<>();
+        inventory.add ("Rock");
+        inventory.add ("Paper");
+        inventory.add ("Scissors");
 
-        Mothership mothership = new Mothership(12345);
-        mothership.Connect();
+        ArrayList <PhysicalState> ps = new ArrayList<>();
+        ps.add(new PhysicalState("camara", 100));
+        ps.add(new PhysicalState("roda", 70));
+        ps.add(new PhysicalState("braco", 30));
+        RoverTelemetryMessage m = new RoverTelemetryMessage(1,new Point3D(1,2,3),
+                Rover.MissionState.CHARGING, 10, inventory, ps);
 
-        Rover rover1 = new Rover(1);
-        Rover rover2 = new Rover(2);
-        Rover rover3 = new Rover(3);
+        Message message = new Message(1, Message.MessageDataTypes.ROVER_TELEMETRY, m);
+        byte[] msgbytes = message.convertMessageToBytes();
+        Message msg = Message.convertBytesToMessage(msgbytes);
 
-        rover1.Connect();
-        rover2.Connect();
-        rover3.Connect();
+        UpdateMission updateMission = new UpdateMission(1, 2, 50, m.convertMessageDataToBytes());
+        Message updateMessage = new Message(1, Message.MessageDataTypes.MISSION_UPDATE, updateMission);
+        Message upmsg = Message.convertBytesToMessage(updateMessage.convertMessageToBytes());
+        /*
+        RequestMission reqM = new RequestMission(1);
+        Message message = new Message(1,Message.MessageDataTypes.REQUEST_MISSION, reqM);
+        Message msg = Message.convertBytesToMessage( message.convertMessageToBytes());
+        */
+
     }
 }

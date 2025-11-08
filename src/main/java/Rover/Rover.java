@@ -1,24 +1,24 @@
 package Rover;
+import Message.MessageData;
+import Message.UpdateMission;
 import Utils.Point3D;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Rover {
-
     private int id;
     private Point3D position;
     private MissionState state = MissionState.IDLE;
     private int batteryLevel = 100;
-    private List<Item> inventory = new ArrayList<>(); // could be map
+    private List<String> inventory = new ArrayList<>();
     private List <PhysicalState> physicalStates;
+    private static final int VARIABLES_IN_MESSAGE = 8; // position counts as 3, plus length
 
-    enum MissionState {
+    public enum MissionState {
         IN_MISSION,
         IDLE,
         CHARGING,
@@ -45,6 +45,12 @@ public class Rover {
     public Point3D getPosition() {return position;}
     public MissionState getState() {return state;}
     public int getBatteryLevel() {return batteryLevel;}
+    public List <String> getInventory() {
+        return new ArrayList<>(inventory);
+    }
+    public List <PhysicalState> getPhysicalStates() {
+        return new ArrayList<>(physicalStates);
+    }
 
     public void setId(int id) {
         this.id = id;
