@@ -1,9 +1,12 @@
+package Mothership;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
+//not used anymore but i'm going to leave it for now
 public class Connection implements Runnable {
 
     private Socket socket;
@@ -19,7 +22,7 @@ public class Connection implements Runnable {
 
             String line;
             while ((line = in.readLine()) != null) {
-                //faz coisas
+                System.out.println(line);
             }
 
             socket.shutdownOutput();

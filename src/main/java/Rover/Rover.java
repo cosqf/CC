@@ -1,11 +1,6 @@
 package Rover;
 import Utils.Point3D;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,23 +48,17 @@ public class Rover {
     public void setState(MissionState state) {this.state = state;}
     public void setBatteryLevel(int batteryLevel) {this.batteryLevel = batteryLevel;}
 
-    public void Connect () throws IOException {
+    public static void main(String[] args) {
         try {
-            Socket socket = new Socket("localhost", 12345);
+            Thread udpThread = new Thread(new MissionLinkClient("10.0.1.10", 5000));
+            Thread tcpThread = new Thread(new TelemetryStreamClient("10.0.1.10", 6000));
 
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            PrintWriter out = new PrintWriter(socket.getOutputStream()); //existe uma opção autoFlush que força o envio dos inputs
+            udpThread.start();
+            tcpThread.start();
 
-            String fromMothership;
-            while ((fromMothership = in.readLine()) != null) {
-                //faz coisas
-            }
-
-            socket.shutdownOutput();
-            socket.shutdownInput();
-            socket.close();
-
-        } catch (IOException e) {
+            System.out.println("Rover online: MissionLink (UDP) + TelemetryStream (TCP) active");
+        } catch (Exception e) {
+            System.out.println("Failed to establish connections: " + e.getMessage());
             e.printStackTrace();
         }
     }
