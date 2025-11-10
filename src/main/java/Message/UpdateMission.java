@@ -9,6 +9,12 @@ public class UpdateMission implements MessageData {
     private final int completionLevel;
     private final byte[] extraData;
 
+    public UpdateMission (int idMission, int idRover, int completionLevel) {
+        this.idMission = idMission;
+        this.idRover = idRover;
+        this.completionLevel = completionLevel;
+        this.extraData = new byte[0];
+    }
     public UpdateMission (int idMission, int idRover, int completionLevel, byte[] extraData) {
         this.idMission = idMission;
         this.idRover = idRover;

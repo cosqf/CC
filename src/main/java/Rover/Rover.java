@@ -1,11 +1,9 @@
 package Rover;
-import Message.MessageData;
-import Message.UpdateMission;
+import Connection.MissionLinkClient;
+import Connection.NetworkConfig;
+import Connection.TelemetryStreamClient;
 import Utils.Point3D;
 
-import java.io.*;
-import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,7 +14,6 @@ public class Rover {
     private int batteryLevel = 100;
     private List<String> inventory = new ArrayList<>();
     private List <PhysicalState> physicalStates;
-    private static final int VARIABLES_IN_MESSAGE = 8; // position counts as 3, plus length
 
     public enum MissionState {
         IN_MISSION,
@@ -60,9 +57,14 @@ public class Rover {
     public void setBatteryLevel(int batteryLevel) {this.batteryLevel = batteryLevel;}
 
     public static void main(String[] args) {
+        NetworkConfig networkConfig = new NetworkConfig();
+        String mothership_id = networkConfig.getIp(NetworkConfig.ID.MOTHERSHIP_IP);
+        String ml_port = networkConfig.getIp(NetworkConfig.ID.MISSION_LINK_PORT);
+        String ts_port = networkConfig.getIp(NetworkConfig.ID.TELEMETRY_STREAM_PORT);
+
         try {
-            Thread udpThread = new Thread(new MissionLinkClient("10.0.1.10", 5000));
-            Thread tcpThread = new Thread(new TelemetryStreamClient("10.0.1.10", 6000));
+            Thread udpThread = new Thread(new MissionLinkClient(mothership_id, Integer.parseInt(ml_port)));
+            Thread tcpThread = new Thread(new TelemetryStreamClient(mothership_id, Integer.parseInt(ts_port)));
 
             udpThread.start();
             tcpThread.start();
