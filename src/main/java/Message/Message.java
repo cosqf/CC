@@ -15,7 +15,9 @@ public class Message  {
         MISSION,
         REQUEST_MISSION,
         MISSION_UPDATE,
-        ROVER_TELEMETRY;
+        ROVER_INIT,
+        ROVER_TELEMETRY,
+        ACK;
     }
 
     public int getSequenceNumber() {
@@ -92,6 +94,8 @@ public class Message  {
             case MISSION_UPDATE  -> mData = UpdateMission.convertBytesToMessageData(dataBytes);
             case REQUEST_MISSION -> mData = RequestMission.convertBytesToMessageData(dataBytes);
             case ROVER_TELEMETRY -> mData = RoverTelemetryMessage.convertBytesToMessageData(dataBytes);
+            case ROVER_INIT      -> mData = RoverInitMessage.convertBytesToMessageData(dataBytes);
+            case ACK             -> mData = ACKMessage.convertBytesToMessageData(dataBytes);
         }
         return new Message (sequenceNumber, messageId, dataType, mData);
     }

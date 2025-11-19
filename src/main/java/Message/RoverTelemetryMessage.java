@@ -37,7 +37,6 @@ public class RoverTelemetryMessage implements MessageData{
         this.physicalStates = physicalStates;
     }
 
-
     @Override
     public byte[] convertMessageDataToBytes() {
         try {
