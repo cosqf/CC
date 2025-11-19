@@ -42,11 +42,11 @@ public class TelemetryStreamClient implements Runnable {
                     Message message = outgoingQueue.take();
                     byte[] msgBytes = message.convertMessageToBytes();
 
-                    out.writeInt(msgBytes.length); // 4 bytes
+                    out.writeInt(msgBytes.length);
                     out.write(msgBytes);
                     out.flush();
 
-                    System.out.println("[TS] Sent telemetry: " + message.toString());
+                    //System.out.println("[TS] Sent telemetry");
                 } catch (InterruptedException e) {
                     System.out.println("[TS] Connection thread interrupted.");
                     Thread.currentThread().interrupt();

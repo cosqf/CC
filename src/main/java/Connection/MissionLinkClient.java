@@ -1,72 +1,86 @@
 package Connection;
 
 import Message.Message;
+import Message.RoverInitMessage;
+import Message.Package;
+import Rover.Rover;
 
 import java.io.IOException;
 import java.net.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class MissionLinkClient implements Runnable {
+public class MissionLinkClient implements Runnable, MissionLinkGeneric {
     private final String serverIP;
     private final int serverPort;
-    private final BlockingQueue<Message> outgoingQueue = new LinkedBlockingQueue<>();
-    private volatile boolean running = true;
+    private final BlockingQueue<Package> outgoingQueue = new LinkedBlockingQueue<>();
+    private final Rover rover;
 
-    public MissionLinkClient(String serverIP, int serverPort) {
+    public MissionLinkClient(String serverIP, int serverPort, Rover rover) {
         this.serverIP = serverIP;
         this.serverPort = serverPort;
+        this.rover = rover;
     }
 
     public void enqueueMessage(Message message) {
         try {
-            outgoingQueue.put(message);
+            Package p = new Package(serverIP, serverPort, message);
+            outgoingQueue.put(p);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
     }
 
-    public void stop() {
-        running = false;
+    @Override
+    public void run() {
+        DatagramSocket socket = null;
+        try {
+            socket = new DatagramSocket();
+            Thread senderThread = new Thread(new MissionLinkSender(socket, this.outgoingQueue));
+            Thread receiverThread = new Thread(new MissionLinkReceiver(socket, this));
+
+            senderThread.start();
+            receiverThread.start();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void processMessageContent(Message msg, DatagramPacket packet) {
+        System.out.println("[ML] Received: " + msg.toString());
+
+        switch (msg.getMessageDataType()) {
+            case ROVER_INIT:
+                RoverInitMessage message = (RoverInitMessage) msg.getMessageData();
+                rover.setId(message.id);
+                break;
+            case MISSION:
+                // get assigned a new mission...
+                break;
+            default:
+                break;
+        }
     }
 
     @Override
-    public void run() {
-        try (DatagramSocket socket = new DatagramSocket()) {
-            InetAddress serverAddr = InetAddress.getByName(serverIP);
+    public void sendResponse(DatagramSocket socket, DatagramPacket requestPacket, Message reply) {
+        try {
+            byte[] replyBytes = reply.convertMessageToBytes();
 
-            while (running) {
-                try {
-                    Message messageToSend = outgoingQueue.take();
+            DatagramPacket responsePacket = new DatagramPacket(
+                    replyBytes, replyBytes.length, requestPacket.getAddress(), requestPacket.getPort());
 
-                    byte[] msg = messageToSend.convertMessageToBytes();
-                    DatagramPacket requestPacket = new DatagramPacket(msg, msg.length, serverAddr, serverPort);
-
-                    socket.send(requestPacket);
-                    System.out.println("[ML] Message sent to Mothership.");
-
-                    // receive reply
-                    byte[] buffer = new byte[1024];
-                    DatagramPacket responsePacket = new DatagramPacket(buffer, buffer.length);
-                    socket.receive(responsePacket);
-
-                    String response = new String(responsePacket.getData(), 0, responsePacket.getLength());
-                    System.out.println("[ML] Received from Mothership: " + response);
-
-                } catch (InterruptedException e) {
-                    System.out.println("[ML] Connection thread interrupted.");
-                    Thread.currentThread().interrupt();
-                    running = false;
-                } catch (IOException e) {
-                    if (running) {
-                        System.out.println("[ML] IO Error: " + e.getMessage());
-                    }
-                }
-            }
-        } catch (Exception e) {
+            socket.send(responsePacket);
+            System.out.println("[ML] Sent reply to Mothership: ID = " + reply.getMessageId());
+        }
+        catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            System.out.println("[ML] Client connection terminated.");
         }
     }
+    @Override
+    public Message generateReply(Message msg) {
+        return this.rover.generateReply(msg);
+    }
+
 }

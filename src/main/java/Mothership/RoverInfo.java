@@ -1,7 +1,5 @@
 package Mothership;
 
-import Rover.Rover;
-
 import java.io.DataOutputStream;
 import java.net.InetAddress;
 import Message.RoverTelemetryMessage;
@@ -14,11 +12,11 @@ public class RoverInfo {
     private RoverTelemetryMessage lastTelemetryMessage;
     private long lastActiveTimestamp;
 
-    public RoverInfo (int roverId,  InetAddress roverIpAddress, int missionLinkUdpPort,  DataOutputStream tcpOut) {
+    public RoverInfo (int roverId, InetAddress roverIpAddress, int missionLinkUdpPort) {
         this.roverId = roverId;
         this.roverIpAddress = roverIpAddress;
         this.missionLinkUdpPort = missionLinkUdpPort;
-        this.tcpOut = tcpOut;
+        this.tcpOut = null;
         this.lastTelemetryMessage = null;
         this.lastActiveTimestamp = System.currentTimeMillis();
     }
