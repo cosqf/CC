@@ -16,6 +16,9 @@ public class MissionLinkClient implements Runnable, MissionLinkGeneric {
     private final BlockingQueue<Package> outgoingQueue = new LinkedBlockingQueue<>();
     private final Rover rover;
 
+    // 1. ALTERAÇÃO: Variável para guardar a referência do Sender
+    private MissionLinkSender sender;
+
     public MissionLinkClient(String serverIP, int serverPort, Rover rover) {
         this.serverIP = serverIP;
         this.serverPort = serverPort;
@@ -36,7 +39,12 @@ public class MissionLinkClient implements Runnable, MissionLinkGeneric {
         DatagramSocket socket = null;
         try {
             socket = new DatagramSocket();
-            Thread senderThread = new Thread(new MissionLinkSender(socket, this.outgoingQueue));
+
+            // 2. ALTERAÇÃO: Instanciar o Sender para a variável da classe antes de iniciar a Thread
+            // Isto permite que o Receiver consiga "falar" com ele mais tarde.
+            this.sender = new MissionLinkSender(socket, this.outgoingQueue);
+
+            Thread senderThread = new Thread(this.sender);
             Thread receiverThread = new Thread(new MissionLinkReceiver(socket, this));
 
             senderThread.start();
@@ -47,16 +55,30 @@ public class MissionLinkClient implements Runnable, MissionLinkGeneric {
         }
     }
 
+    @Override
     public void processMessageContent(Message msg, DatagramPacket packet) {
         System.out.println("[ML] Received: " + msg.toString());
 
+        // 3. ALTERAÇÃO: Lógica de Fiabilidade (Stop-and-Wait)
+        // Verifica se a mensagem traz um ACK no cabeçalho (Piggybacking ou ACK puro)
+        if (msg.getAckNumber() != -1) {
+            System.out.println("[ML-Client] ACK Recebido no cabeçalho: " + msg.getAckNumber());
+            if (this.sender != null) {
+                // Avisa a thread Sender que o pacote foi confirmado para ela avançar
+                this.sender.confirmAck(msg.getAckNumber());
+            }
+        }
+
+        // Lógica original de processamento de conteúdo
         switch (msg.getMessageDataType()) {
             case ROVER_INIT:
                 RoverInitMessage message = (RoverInitMessage) msg.getMessageData();
                 rover.setId(message.id);
                 break;
             case MISSION:
-                // get assigned a new mission...
+                System.out.println("[ML] NOVA MISSÃO RECEBIDA!");
+                // Aqui deves adicionar a lógica para guardar a missão no Rover
+                // Ex: rover.setMission((MissionMessage) msg.getMessageData());
                 break;
             default:
                 break;
@@ -78,9 +100,9 @@ public class MissionLinkClient implements Runnable, MissionLinkGeneric {
             e.printStackTrace();
         }
     }
+
     @Override
     public Message generateReply(Message msg) {
         return this.rover.generateReply(msg);
     }
-
 }

@@ -22,8 +22,8 @@ public class Rover {
         ON_THE_WAY
     }
 
-    public Rover(Point3D position, List<PhysicalState> physicalStates) {
-        this.id = -1;
+    public Rover(int id, Point3D position, List<PhysicalState> physicalStates) {
+        this.id = id;
         this.position = position;
         this.physicalStates = new ArrayList<>();
         this.physicalStates.addAll(physicalStates);
@@ -54,7 +54,23 @@ public class Rover {
         physicalStates.add(new PhysicalState("wheels", 100));
         physicalStates.add(new PhysicalState("camera", 80));
 
-        Rover rover = new Rover( new Point3D(0,0,0), physicalStates);
+
+        int roverId = 1; // Valor default caso te esqueças de passar argumento
+
+        if (args.length > 0) {
+            try {
+                // O argumento vem como String ("1"), temos de converter para int
+                // args[0] é o primeiro argumento da linha de comandos
+                roverId = Integer.parseInt(args[0]);
+            } catch (NumberFormatException e) {
+                System.err.println("Erro: O ID do Rover deve ser um número inteiro.");
+                return;
+            }
+        } else {
+            System.out.println("Aviso: Nenhum ID fornecido. A usar ID default: 1");
+        }
+
+        Rover rover = new Rover(roverId, new Point3D(0,0,0), physicalStates);
         RoverConnection connection = new RoverConnection(rover);
         connection.connectServer();
         connection.sendInit();

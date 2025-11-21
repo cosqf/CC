@@ -7,6 +7,11 @@ public class RequestMission implements MessageData {
         this.idRover = idRover;
     }
 
+    public int getIdRover() {
+        return this.idRover;
+    }
+    // ----------------------------
+
     @Override
     public byte[] convertMessageDataToBytes() {
         byte[] bytes = new byte[2];
@@ -21,8 +26,6 @@ public class RequestMission implements MessageData {
 
     @Override
     public String toString() {
-        return "RequestMission { " +
-                "idRover = " + idRover +
-                '}';
+        return "RequestMission { " + "idRover = " + idRover + '}';
     }
 }

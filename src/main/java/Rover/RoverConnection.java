@@ -12,21 +12,58 @@ public class RoverConnection {
     private final Rover rover;
     private MissionLinkClient missionLinkClient;
     private TelemetryStreamClient telemetryStreamClient;
-
+    private int localSequenceNumber = 0;
     public RoverConnection(Rover rover) {
         this.rover = rover;
     }
 
     public void requestMission() {
-        Message msg = new Message(0, Message.MessageDataTypes.REQUEST_MISSION, new RequestMission(this.rover.getId()));
+
+        int seq = this.localSequenceNumber;
+        int ackToSend = 0;
+        RequestMission req = new RequestMission(this.rover.getId());
+        Message msg = new Message(
+                seq,
+                ackToSend,
+                Message.MessageDataTypes.REQUEST_MISSION,
+                req
+        );
+
+        int payloadSize = req.convertMessageDataToBytes().length;
+        this.localSequenceNumber += (payloadSize > 0 ? payloadSize : 1);
         missionLinkClient.enqueueMessage(msg);
-        System.out.println("[Rover " + this.rover.getId() + "] sent a mission request.");
+        System.out.println("[Rover " + this.rover.getId() + "] sent request (Seq " + seq + ", Ack " + ackToSend + ").");
     }
     public void sendInit() {
-        Message msg = new Message(0, Message.MessageDataTypes.ROVER_INIT, new RoverInitMessage());
+
+        int seq = this.localSequenceNumber;
+        int ackToSend = 0;
+        RoverInitMessage init = new RoverInitMessage(this.rover.getId());
+
+        Message msg = new Message(
+                seq,
+                ackToSend,
+                Message.MessageDataTypes.ROVER_INIT,
+                init
+        );
+
+        int size = init.convertMessageDataToBytes().length;
+        this.localSequenceNumber += (size > 0 ? size : 1);
         missionLinkClient.enqueueMessage(msg);
-        System.out.println("[Rover] sent an init message.");
-        // NEEDS TO BLOCK UNTIL IT RECEIVES REPLY
+        System.out.println("[Rover] sent an init message (Seq " + seq + ").");
+
+        // 7. (Opcional) Bloquear até receber o ID da Nave
+        // Como o Sender garante a entrega, só precisamos de esperar que o Receiver processe a resposta.
+        /*
+        while (this.rover.getId() == -1) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        System.out.println("[Rover] ID atribuído e confirmado: " + this.rover.getId());
+        */
     }
 
     public void sendTelemetry() {

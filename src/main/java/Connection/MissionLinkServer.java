@@ -39,17 +39,6 @@ public class MissionLinkServer implements Runnable, MissionLinkGeneric { //UDP
     public void processMessageContent(Message msg, DatagramPacket packet) {
         System.out.println("[ML] Received: " + msg.toString());
 
-        switch (msg.getMessageDataType()) {
-            case ROVER_INIT:
-                // the mothership will store the ip/port from the packet
-                mothership.assignRoverID(msg, packet.getAddress(), packet.getPort());
-                break;
-            case REQUEST_MISSION:
-                // create a new mission...
-                break;
-            default:
-                break;
-        }
     }
 
     @Override
@@ -61,7 +50,7 @@ public class MissionLinkServer implements Runnable, MissionLinkGeneric { //UDP
                     replyBytes, replyBytes.length, requestPacket.getAddress(), requestPacket.getPort());
 
             socket.send(responsePacket);
-            System.out.println("[ML] Sent reply to Rover: ID = " + reply.getMessageId());
+            System.out.println("[ML] Sent reply to Rover: Message ID = " + reply.getMessageId());
         } catch (IOException e) {
             e.printStackTrace();
         }
