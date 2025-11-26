@@ -30,6 +30,6 @@ public class PhysicalState {
     }
     @Override
     public String toString () {
-        return partName + " " + condition;
+        return partName + ": " + condition + "%";
     }
 }

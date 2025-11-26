@@ -1,5 +1,6 @@
 package Mothership;
 
+import API.APIServer;
 import Connection.MissionLinkServer;
 import Connection.NetworkConfig;
 import Connection.TelemetryStreamServer;
@@ -7,6 +8,7 @@ import Connection.TelemetryStreamServer;
 public class MothershipConnection {
     private MissionLinkServer missionLinkServer;
     private TelemetryStreamServer telemetryStreamServer;
+    private APIServer observationAPI;
     private Mothership mothership;
 
     public MothershipConnection(Mothership mothership) {
@@ -18,6 +20,9 @@ public class MothershipConnection {
 
         String ml_port = networkConfig.getIp(NetworkConfig.ID.MISSION_LINK_PORT);
         String ts_port = networkConfig.getIp(NetworkConfig.ID.TELEMETRY_STREAM_PORT);
+        String api_port = networkConfig.getIp(NetworkConfig.ID.API_SERVER);
+        String ms_ip = networkConfig.getIp(NetworkConfig.ID.MOTHERSHIP_IP);
+
         try {
             missionLinkServer = new MissionLinkServer(Integer.parseInt(ml_port), mothership);
             Thread udpServer = new Thread(missionLinkServer);
@@ -25,10 +30,12 @@ public class MothershipConnection {
             telemetryStreamServer = new TelemetryStreamServer(Integer.parseInt(ts_port), mothership);
             Thread tcpServer = new Thread(telemetryStreamServer);
 
+            observationAPI = new APIServer(ms_ip, Integer.parseInt(api_port), mothership);
+            Thread apiServer = new Thread(observationAPI);
+
             udpServer.start();
             tcpServer.start();
-
-            System.out.println("Mothership is running MissionLink (UDP) on port " + ml_port + " and TelemetryStream (TCP) on port " + ts_port + ".");
+            apiServer.start();
         } catch (Exception e) {
             System.out.println("Failed to establish connections: " + e.getMessage());
             e.printStackTrace();

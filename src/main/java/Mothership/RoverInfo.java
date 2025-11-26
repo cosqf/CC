@@ -1,15 +1,13 @@
 package Mothership;
 
 import java.net.InetAddress;
-import java.io.DataOutputStream;
 import Message.RoverTelemetryMessage;
-import Message.Message; // Import essencial
+import Message.Message;
 
 public class RoverInfo {
     private final int roverId;
     private InetAddress roverIpAddress;
     private int missionLinkUdpPort;
-    private DataOutputStream tcpOut;
     private RoverTelemetryMessage lastTelemetryMessage;
     private long lastActiveTimestamp;
 
@@ -21,16 +19,6 @@ public class RoverInfo {
         this.roverId = roverId;
         this.roverIpAddress = roverIpAddress;
         this.missionLinkUdpPort = missionLinkUdpPort;
-        this.tcpOut = null;
-        this.lastTelemetryMessage = null;
-        this.lastActiveTimestamp = System.currentTimeMillis();
-    }
-
-    public RoverInfo (int roverId, InetAddress roverIpAddress, int missionLinkUdpPort, DataOutputStream tcpOut) {
-        this.roverId = roverId;
-        this.roverIpAddress = roverIpAddress;
-        this.missionLinkUdpPort = missionLinkUdpPort;
-        this.tcpOut = tcpOut;
         this.lastTelemetryMessage = null;
         this.lastActiveTimestamp = System.currentTimeMillis();
     }
@@ -69,5 +57,36 @@ public class RoverInfo {
 
     public int getRoverId() {
         return roverId;
+    }
+
+    public InetAddress getRoverIpAddress(){
+        return this.roverIpAddress;
+    }
+
+    public RoverTelemetryMessage getLastTelemetryMessage(){
+        return this.lastTelemetryMessage;
+    }
+
+
+
+    public String toStringForAPI() {
+        final int WIDTH = 80;
+
+        String SEPARATOR_LINE = "+" + "-".repeat(WIDTH - 2) + "+";
+
+        String rover = String.format("| Rover %d:%-" + (WIDTH - 11) + "s|", this.roverId, "");
+        String ipAddress = String.format("| IP address -> %-" + (WIDTH - 18) + "s |", this.roverIpAddress);
+        String status = this.lastTelemetryMessage.getMissionState().toString();
+        String statusLine = String.format("| Status -> %-" + (WIDTH - 14) + "s |", status);
+        String battery = this.lastTelemetryMessage.getBatteryLevel() + "%";
+        String batteryLine = String.format("| Battery -> %-" + (WIDTH - 15) + "s |", battery);
+
+        return SEPARATOR_LINE + "\n" +
+                rover + "\n" +
+                SEPARATOR_LINE + "\n" +
+                ipAddress + "\n" +
+                statusLine + "\n" +
+                batteryLine + "\n" +
+                SEPARATOR_LINE + "\n";
     }
 }

@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import Message.Message;
-import Message.RoverTelemetryMessage; // Import explícito para evitar erros
+import Message.RoverTelemetryMessage;
 import Mothership.Mothership;
 
 public class TelemetryStreamServer implements Runnable {
@@ -47,7 +47,7 @@ public class TelemetryStreamServer implements Runnable {
                     if (receivedMsg.getMessageDataType() == Message.MessageDataTypes.ROVER_TELEMETRY) {
                         // CORREÇÃO: Usa apenas o nome da classe
                         RoverTelemetryMessage tel = (RoverTelemetryMessage) receivedMsg.getMessageData();
-                        currentRoverId = tel.id;
+                        currentRoverId = tel.getId();
                     }
                 }
             }
