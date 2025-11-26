@@ -158,6 +158,7 @@ public class RoverMissions {
         }
         else {
             rover.setState(Rover.MissionState.ON_THE_WAY);
+            sendUpdate();
             System.out.println("[MISSION -> ON THE WAY] Finished!");        // decision to on the way to base
             return (long) (System.currentTimeMillis() + timeBetweenPlaces(rover.getPosition(), rover.getBase().getPosition()) * 1000);
         }

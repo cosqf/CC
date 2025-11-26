@@ -40,14 +40,14 @@ public class GroundControl {
                         System.out.println("\nROVER INFO");
                         System.out.println(getResponse("/rovers"));
                         break;
-//                    case 2:
-//                        System.out.println("\nACTIVE MISSIONS");
-//                        System.out.println(getResponse("/missions/active");
-//                        break;
-//                    case 3:
-//                        System.out.println("\nPAST MISSIONS");
-//                        System.out.println(getResponse("/missions/past");
-//                        break;
+                    case 2:
+                        System.out.println("\nACTIVE MISSIONS");
+                        System.out.println(getResponse("/missions/active"));
+                        break;
+                    case 3:
+                        System.out.println("\nPAST MISSIONS");
+                        System.out.println(getResponse("/missions/past"));
+                        break;
                     case 4:
                         System.out.println("\nMOST RECENT TELEMETRY DATA");
                         System.out.println(getResponse("/telemetry"));

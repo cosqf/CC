@@ -33,6 +33,6 @@ public class PhysicalState {
     }
     @Override
     public String toString () {
-        return partName.toUpperCase() + ": " + condition + ""%;
+        return partName.toUpperCase() + ": " + condition + "%";
     }
 }
