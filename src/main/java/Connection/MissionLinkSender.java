@@ -76,11 +76,11 @@ public class MissionLinkSender implements Runnable {
                     // --- LOGGING ESTILO WIRESHARK ---
                     if (attempts > 1) {
                         // Retransmissão (Fundo Vermelho)
-                        UDPPrint.log("SND", msg, "Retransmissão #" + attempts + " -> " + pkg.getToIp(), true);
+                        UDPPrint.log("SND", msg, "Retransmission #" + attempts + " -> " + pkg.getToIp(), true);
                         System.out.println(msg);
                     } else {
                         // Envio Normal (Ciano)
-                        UDPPrint.log("SND", msg, "Para: " + pkg.getToIp() + " (Espera ACK " + expectedAck + ")", false);
+                        UDPPrint.log("SND", msg, "To: " + pkg.getToIp() + " (Waiting ACK " + expectedAck + ")", false);
                     }
                     // --------------------------------
 

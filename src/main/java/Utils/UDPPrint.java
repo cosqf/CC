@@ -17,12 +17,12 @@ public class UDPPrint {
 
     // Log de Erro/Descarte (VERMELHO)
     public static void logError(String source, Message msg, String extraInfo) {
-        printLine(RED, source, msg, "[DUPLICADO] " + extraInfo);
+        printLine(RED, source, msg, "[DUPLICATE] " + extraInfo);
     }
 
     // Log de Sucesso/Processamento (VERDE)
     public static void logSuccess(String source, Message msg, String extraInfo) {
-        printLine(GREEN, source, msg, "[SUCESSO] " + extraInfo);
+        printLine(GREEN, source, msg, "[SUCCESS] " + extraInfo);
     }
 
     private static void printLine(String color, String source, Message msg, String extraInfo) {
@@ -42,3 +42,16 @@ public class UDPPrint {
         );
     }
 }
+
+
+/*
+*
+*   TRATAR PARTE DAS FRAGMENTAÇÕES
+*
+*   NAVE MAE DA INFORMAÇOES DE FRAGMENTAÇÃO QUANDO CRIAR O ROVER
+*
+*   ROVER TRATA DE TODA A MANIPULAÇÃO DE FRAGMENTAÇAO
+*
+*   NAVE MAE RECEBE JÁ AS MENSAGENS FRAGMENTADAS
+*
+* */

@@ -58,7 +58,7 @@ public class MissionLinkClient implements Runnable, MissionLinkGeneric {
     @Override
     public void processMessageContent(Message msg, DatagramPacket packet) {
         // 1. Processar ACK (Silencioso, ou podes por log normal se quiseres)
-        if (msg.getAckNumber() != -1 && this.sender != null) {
+        if (msg.getAckNumber() != -2 && this.sender != null) {
             this.sender.confirmAck(msg.getAckNumber());
         }
 
@@ -81,6 +81,7 @@ public class MissionLinkClient implements Runnable, MissionLinkGeneric {
 
             case MISSION:
                 UDPPrint.logSuccess("RCV", msg, "NOVA MISSÃO ACEITE E GUARDADA!");
+                this.rover.setState(Rover.MissionState.IN_MISSION);
                 break;
 
             default:

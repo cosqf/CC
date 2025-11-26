@@ -15,7 +15,7 @@ public class RoverTelemetryMessage implements MessageData{
     private int id;
     private Point3D position;
     private Rover.MissionState state;
-    private int batteryLevel;
+    private double batteryLevel;
     private List<String> inventory;
     private List <PhysicalState> physicalStates;
 
@@ -50,7 +50,7 @@ public class RoverTelemetryMessage implements MessageData{
         return state;
     }
 
-    public int getBatteryLevel() {
+    public double getBatteryLevel() {
         return batteryLevel;
     }
 

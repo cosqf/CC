@@ -86,7 +86,7 @@ public class Rover {
                 return;
             }
         } else {
-            System.out.println("Aviso: Nenhum ID fornecido. A usar ID default: 1");
+            System.out.println("Warning: No ID given. Using default ID: 1");
         }
 
         Rover rover = new Rover(roverId, new Point3D(0,0,0), physicalStates, 5);
@@ -103,6 +103,7 @@ public class Rover {
                 setId(roverMsg.getId());
                 break;
             case MISSION:
+
                 MissionMessage missionMsg = (MissionMessage) msg;
                 this.roverMissions.addMission(missionMsg.getMission());
                 break;
