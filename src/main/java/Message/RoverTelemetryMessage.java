@@ -168,61 +168,36 @@ public class RoverTelemetryMessage implements MessageData{
 
     public String toStringForAPI() {
         final int WIDTH = 80;
-        final int CONTENT_WIDTH = WIDTH - 4; // Space for content between "| " and " |"
-
-        final String SEPARATOR_LINE = "+" + "-".repeat(WIDTH - 2) + "+";
-        final String DATA_SEPARATOR = "|" + "-".repeat(WIDTH - 2) + "|";
+        final String SEPARATOR_LINE = "+" + "-".repeat(WIDTH - 2) + "+" + "\n";
         StringBuilder sb = new StringBuilder();
 
-        // --- Fixed lines ---
-        sb.append(SEPARATOR_LINE).append("\n");
-
-        String roverLine = String.format("| Rover %d:%-" + (CONTENT_WIDTH - ("Rover " + this.id + ":").length()) + "s |", this.id, "");
-        sb.append(roverLine).append("\n");
-
-        sb.append(DATA_SEPARATOR).append("\n");
-
-        String positionLine = String.format("| Position -> %-" + (CONTENT_WIDTH - "Position -> ".length()) + "s |", this.position.toString());
-        String statusLine = String.format("| Status -> %-" + (CONTENT_WIDTH - "Status -> ".length()) + "s |", this.state.toString());
-        String batteryLine = String.format("| Battery -> %-" + (CONTENT_WIDTH - "Battery -> ".length()) + "s |", this.batteryLevel + "%");
-
-        sb.append(positionLine).append("\n");
-        sb.append(statusLine).append("\n");
-        sb.append(batteryLine).append("\n");
-
-        // --- Inventory Output (wrapped) ---
-        String inventoryLabel = "Inventory -> ";
-        List<String> inventoryLines = wrapText(this.printInventory(), CONTENT_WIDTH - inventoryLabel.length());
-
-        // First line with label
-        sb.append("| ").append(inventoryLabel)
-                .append(String.format("%-" + (CONTENT_WIDTH - inventoryLabel.length()) + "s", inventoryLines.get(0)))
-                .append(" |\n");
-
-        // Continuation lines
-        for (int i = 1; i < inventoryLines.size(); i++) {
-            sb.append("| ").append(String.format("%-" + CONTENT_WIDTH + "s", inventoryLines.get(i))).append(" |\n");
-        }
-
-        // --- Physical Status Output (wrapped) ---
-        String physicalLabel = "Physical Status -> ";
-        List<String> physicalLines = wrapText(this.printPhysicalStates(), CONTENT_WIDTH - physicalLabel.length());
-
-        // First line with label
-        sb.append("| ").append(physicalLabel)
-                .append(String.format("%-" + (CONTENT_WIDTH - physicalLabel.length()) + "s", physicalLines.get(0)))
-                .append(" |\n");
-
-        // Continuation lines
-        for (int i = 1; i < physicalLines.size(); i++) {
-            sb.append("| ").append(String.format("%-" + CONTENT_WIDTH + "s", physicalLines.get(i))).append(" |\n");
-        }
+        sb.append(SEPARATOR_LINE);
+        sb.append(String.format("| Rover %d:%-" + (WIDTH - 11 - ((int) Math.log10(Math.abs(this.id)) + 1)) + "s |\n", this.id, ""));
+        sb.append(SEPARATOR_LINE);
+        sb.append(String.format("| Position -> %-" + (WIDTH - 16) + "s |\n", this.position.toString()));
+        sb.append(String.format("| Status -> %-" + (WIDTH - 14) + "s |\n", this.state.toString()));
+        sb.append(String.format("| Battery -> %-" + (WIDTH - 15) + "s |\n", this.batteryLevel + "%"));
+        
+        appendWrappedLine(sb, "Inventory -> ", printInventory(), WIDTH);
+        
+        appendWrappedLine(sb, "Physical Status -> ", printPhysicalStates(), WIDTH);
 
         sb.append(SEPARATOR_LINE);
-
         return sb.toString();
     }
 
+    private void appendWrappedLine(StringBuilder sb, String label, String text, int width) {
+        int diff = width - 4 - label.length();
+        
+        List<String> lines = wrapText(text, diff);
+        sb.append(String.format("| %s%-" + diff + "s |\n", label, lines.get(0)));
+
+        String indent = " ".repeat(label.length());
+        for (int i = 1; i < lines.size(); i++) {
+            sb.append(String.format("| %s%-" + diff + "s |\n", indent, lines.get(i)));
+        }
+    }
+    
     private List<String> wrapText(String text, int maxLength) {
         List<String> lines = new ArrayList<>();
         if (text == null || text.isEmpty()) {
@@ -230,22 +205,21 @@ public class RoverTelemetryMessage implements MessageData{
             return lines;
         }
 
-        String[] words = text.split(" "); // split by spaces
+        String[] words = text.split(" ");
         StringBuilder currentLine = new StringBuilder();
 
         for (String word : words) {
-            if (currentLine.length() == 0) {
+            if (currentLine.isEmpty()) {
                 currentLine.append(word);
             } else if (currentLine.length() + 1 + word.length() <= maxLength) {
                 currentLine.append(" ").append(word);
             } else {
-                // line is full, start new line
                 lines.add(currentLine.toString());
                 currentLine = new StringBuilder(word);
             }
         }
 
-        if (currentLine.length() > 0) {
+        if (!currentLine.isEmpty()) {
             lines.add(currentLine.toString());
         }
 
@@ -255,26 +229,13 @@ public class RoverTelemetryMessage implements MessageData{
 
 
     public String printInventory() {
-        StringBuilder sb = new StringBuilder();
-        for (String i : this.inventory) {
-            sb.append(i).append(", "); // Use comma-space separator instead of newline
-        }
-        // Remove the final ", " if it exists
-        if (sb.length() > 0) {
-            sb.setLength(sb.length() - 2);
-        }
-        return sb.toString();
+        return String.join(", ", this.inventory);
     }
 
     public String printPhysicalStates() {
-        StringBuilder sb = new StringBuilder();
-        for (PhysicalState ps : this.physicalStates) {
-            sb.append(ps.toString()).append(", "); // Use comma-space separator
-        }
-        // Remove the final ", " if it exists
-        if (sb.length() > 0) {
-            sb.setLength(sb.length() - 2);
-        }
-        return sb.toString();
+        return String.join(", ", this.physicalStates.stream()
+                .map(PhysicalState::toString)
+                .toList());
     }
+
 }

@@ -160,18 +160,21 @@ public class Mothership { // controller
         return this.rovers.values();
     }
 
-//    public Collection<RoverInfo> getActiveMissions() {
-//        return mothershipMissions.getActiveMissions();
-//    }
-//
-//    public Collection<RoverInfo> getPastMissions() {
-//        return mothershipMissions.getActiveMissions();
-//    }
+    public Collection<Mission> getActiveMissions() {
+        return mothershipMissions.getActiveMissions();
+    }
+
+    public Collection<Mission> getPastMissions() {
+        return mothershipMissions.getPastMissions();
+    }
 
     public ArrayList<RoverTelemetryMessage> getLastTelemetry() {
         ArrayList<RoverTelemetryMessage> res = new ArrayList<RoverTelemetryMessage>();
         for (RoverInfo i : this.rovers.values()) {
-            res.add(i.getLastTelemetryMessage());
+            RoverTelemetryMessage msg = i.getLastTelemetryMessage();
+            if (msg != null) {
+                res.add(msg);
+            }
         }
         return res;
     }

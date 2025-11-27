@@ -85,10 +85,44 @@ public class Mission implements Comparable<Mission> {
     public void setCompleted() {
         this.isCompleted = true;
     }
+
     @Override
     public int compareTo(Mission mission) {
         if (this.isUrgent == mission.isUrgent) return 0;
         if (this.isUrgent) return -1;
         return 1;
+    }
+
+    public String toStringForAPI() {
+        final int WIDTH = 80;
+
+        String SEPARATOR_LINE = "+" + "-".repeat(WIDTH - 2) + "+\n";
+
+        String mission = String.format("| Mission %d:%-" + (WIDTH - 13 - ((int) Math.log10(Math.abs(this.missionId)) + 1)) + "s |\n", this.missionId, "");
+        String rover = String.format("| Rover -> %d%-" + (WIDTH - 13 - ((int) Math.log10(Math.abs(this.roverId)) + 1)) + "s |\n", this.roverId, "");
+        String mtype = String.format("| Mission Type -> %-" + (WIDTH - 20) + "s |\n", this.missionType.toString());
+        String coords = String.format("| Coordinates -> %-" + (WIDTH - 19) + "s |\n", this.areaCoordinates.toString());
+        String radius = String.format("| Radius -> %d%-" + (WIDTH - 14 - ((int) Math.log10(Math.abs(this.areaRadius)) + 1)) + "s |\n", this.areaRadius, "");
+        String duration = String.format("| Duration -> %d%-" + (WIDTH - 16 - ((int) Math.log10(Math.abs(this.missionTime)) + 1)) + "s |\n", this.missionTime, "");
+        String update = String.format("| Update Interval -> %d%-" + (WIDTH - 23 - ((int) Math.log10(Math.abs(this.updateTime)) + 1)) + "s |\n", this.updateTime, "");
+
+        String urgency = (isUrgent) ? "Yes" : "No";
+        String urgencyLine = String.format("| Urgent -> %-" + (WIDTH - 14) + "s |\n", urgency);
+
+        String status = (isCompleted) ? "Completed" : "Ongoing";
+        String statusLine = String.format("| Status -> %-" + (WIDTH - 14) + "s |\n", status);
+
+        return SEPARATOR_LINE +
+                mission +
+                SEPARATOR_LINE +
+                rover +
+                mtype +
+                coords +
+                radius +
+                duration +
+                update +
+                urgencyLine +
+                statusLine +
+                SEPARATOR_LINE;
     }
 }

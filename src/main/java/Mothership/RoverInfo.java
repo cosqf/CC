@@ -72,21 +72,25 @@ public class RoverInfo {
     public String toStringForAPI() {
         final int WIDTH = 80;
 
-        String SEPARATOR_LINE = "+" + "-".repeat(WIDTH - 2) + "+";
+        String SEPARATOR_LINE = "+" + "-".repeat(WIDTH - 2) + "+" + "\n";
 
-        String rover = String.format("| Rover %d:%-" + (WIDTH - 11) + "s|", this.roverId, "");
-        String ipAddress = String.format("| IP address -> %-" + (WIDTH - 18) + "s |", this.roverIpAddress);
-        String status = this.lastTelemetryMessage.getMissionState().toString();
-        String statusLine = String.format("| Status -> %-" + (WIDTH - 14) + "s |", status);
-        String battery = this.lastTelemetryMessage.getBatteryLevel() + "%";
-        String batteryLine = String.format("| Battery -> %-" + (WIDTH - 15) + "s |", battery);
+        String rover = String.format("| Rover %d:%-" + (WIDTH - 11 - ((int) Math.log10(Math.abs(this.roverId)) + 1)) + "s |\n", this.roverId, "");
+        String ipAddress = String.format("| IP address -> %-" + (WIDTH - 18) + "s |\n", this.roverIpAddress);
+        String status = "N/A";
+        String battery = "N/A";
+        if (this.lastTelemetryMessage != null) {
+            status = this.lastTelemetryMessage.getMissionState().toString();
+            battery = this.lastTelemetryMessage.getBatteryLevel() + "%";
+        }
+        String statusLine = String.format("| Status -> %-" + (WIDTH - 14) + "s |\n", status);
+        String batteryLine = String.format("| Battery -> %-" + (WIDTH - 15) + "s |\n", battery);
 
-        return SEPARATOR_LINE + "\n" +
-                rover + "\n" +
-                SEPARATOR_LINE + "\n" +
-                ipAddress + "\n" +
-                statusLine + "\n" +
-                batteryLine + "\n" +
-                SEPARATOR_LINE + "\n";
+        return SEPARATOR_LINE +
+                rover +
+                SEPARATOR_LINE +
+                ipAddress +
+                statusLine +
+                batteryLine +
+                SEPARATOR_LINE;
     }
 }
