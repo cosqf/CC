@@ -81,7 +81,6 @@ public class MissionLinkClient implements Runnable, MissionLinkGeneric {
 
             case MISSION:
                 UDPPrint.logSuccess("RCV", msg, "NOVA MISSÃO ACEITE E GUARDADA!");
-                this.rover.setState(Rover.MissionState.IN_MISSION);
                 break;
 
             default:

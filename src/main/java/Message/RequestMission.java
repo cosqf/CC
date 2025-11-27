@@ -1,5 +1,7 @@
 package Message;
 
+import java.io.*;
+
 public class RequestMission implements MessageData {
     private final int idRover;
 
@@ -14,14 +16,26 @@ public class RequestMission implements MessageData {
 
     @Override
     public byte[] convertMessageDataToBytes() {
-        byte[] bytes = new byte[2];
-        bytes[0] = (byte) 1;
-        bytes[1] = (byte) idRover;
-        return bytes;
+        ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+        try (DataOutputStream out = new DataOutputStream(byteOut)) {
+            out.writeInt(4);
+            out.writeInt(idRover);
+            out.flush();
+            return byteOut.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("Serialization failed for RequestMission.", e);
+        }
     }
 
     public static RequestMission convertBytesToMessageData(byte[] bytes) {
-        return new RequestMission(bytes[1]);
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+             DataInputStream dis = new DataInputStream(bis)) {
+            dis.readInt();
+            int id = dis.readInt();
+            return new RequestMission(id);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

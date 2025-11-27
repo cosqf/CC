@@ -38,7 +38,7 @@ public class MothershipMissions {
         Random rand = new Random();
         Mission.MissionType type = Mission.MissionType.values()[rand.nextInt(Mission.MissionType.values().length)];
         Point3D coords = new Point3D(rand.nextInt(50), rand.nextInt(50), rand.nextInt(50));
-        int area =  rand.nextInt(1,50);
+        int area =  rand.nextInt(1,30);
         int time = rand.nextInt(10,60);            // 1 min max
         int updateTime = rand.nextInt(1,time/3);    // 3 updates per mission min
         boolean isUrgent = rand.nextInt(100) < 10;        // 10% chance of being urgent
@@ -72,18 +72,16 @@ public class MothershipMissions {
             System.out.println("[MOTHERSHIP MISSIONS] Updated mission not found!"); // shouldn't happen
             return;
         }
-        switch (msg.getCompletionLevel()) {
-            case -1:
-                activeMissions.remove(missionId);
-                discardedMissions.put(missionId, m);
-                System.out.println("mission discarded!");
-                break;
-            case 100:
-                activeMissions.remove(missionId);
-                completedMissions.put(missionId, m);
-                break;
-            default:
-                break;
+        int completionLevel = msg.getCompletionLevel();
+        if (completionLevel < 0 || completionLevel > 100) {
+            activeMissions.remove(missionId);
+            discardedMissions.put(missionId, m);
+            System.out.println("[MOTHERSHIP MISSIONS] Mission " + msg.getIdMission() + " discarded!");
+        }
+        else if (completionLevel == 100) {
+            activeMissions.remove(missionId);
+            completedMissions.put(missionId, m);
+            System.out.println("[MOTHERSHIP MISSIONS] Mission " + msg.getIdMission() + " completed!");
         }
     }
 

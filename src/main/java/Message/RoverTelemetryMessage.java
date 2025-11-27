@@ -6,6 +6,7 @@ import Utils.Point3D;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -64,12 +65,11 @@ public class RoverTelemetryMessage implements MessageData{
 
     @Override
     public byte[] convertMessageDataToBytes() {
+        byte[] dataContentBytes;
         try {
             ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-
             try (DataOutputStream out = new DataOutputStream(byteOut)) {
-
-                out.write(id);
+                out.writeInt(id);
                 out.writeDouble(position.x);
                 out.writeDouble(position.y);
                 out.writeDouble(position.z);
@@ -77,29 +77,22 @@ public class RoverTelemetryMessage implements MessageData{
 
                 out.writeDouble(batteryLevel);
 
-                out.write(inventory.size());
+                out.writeInt(inventory.size());
                 for (String item : inventory) {
                     byte[] nameBytes = item.getBytes(StandardCharsets.UTF_8);
-                    out.write(nameBytes.length);
+                    out.writeInt(nameBytes.length);
                     out.write(nameBytes);
                 }
 
-                out.write((byte) physicalStates.size());
+                out.writeInt(physicalStates.size());
                 for (PhysicalState ps : physicalStates) {
                     byte[] psBytes = ps.toByteArray();
-                    out.write((byte) psBytes.length);
+                    out.writeInt(psBytes.length);
                     out.write(psBytes);
                 }
-
+                dataContentBytes = byteOut.toByteArray();
             }
-            byte[] bytes = byteOut.toByteArray();
-
-            byte[] bytesWithLength = new byte[bytes.length+1];
-            bytesWithLength[0] = (byte) byteOut.size();
-            System.arraycopy(bytes, 0, bytesWithLength, 1, bytes.length);
-
-            return bytesWithLength;
-
+            return MessageData.addSizeToArray(dataContentBytes);
         } catch (Exception e) {
             throw new RuntimeException("Error converting message to bytes", e);
         }
@@ -123,27 +116,27 @@ public class RoverTelemetryMessage implements MessageData{
     public static RoverTelemetryMessage convertBytesToMessageData(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
 
-        int totalLength = Byte.toUnsignedInt(buffer.get());
-        int id = Byte.toUnsignedInt(buffer.get());
+        int totalLength = buffer.getInt();
+        int id = buffer.getInt();
         double x = buffer.getDouble();
         double y = buffer.getDouble();
         double z = buffer.getDouble();
-        int stateOrdinal = Byte.toUnsignedInt(buffer.get());
+        int stateOrdinal = buffer.get();
         double batteryLevel = buffer.getDouble();
 
-        int invCount = Byte.toUnsignedInt(buffer.get());
+        int invCount = buffer.getInt();
         List<String> inventory = new ArrayList<>();
         for (int i = 0; i < invCount; i++) {
-            int len = Byte.toUnsignedInt(buffer.get());
+            int len = buffer.getInt();
             byte[] strBytes = new byte[len];
             buffer.get(strBytes);
             inventory.add(new String(strBytes, StandardCharsets.UTF_8));
         }
 
-        int psCount = Byte.toUnsignedInt(buffer.get());
+        int psCount = buffer.getInt();
         List<PhysicalState> physicalStates = new ArrayList<>();
         for (int i = 0; i < psCount; i++) {
-            int len = Byte.toUnsignedInt(buffer.get());
+            int len = buffer.getInt();
             byte[] psBytes = new byte[len];
             buffer.get(psBytes);
             physicalStates.add(PhysicalState.fromBytes(psBytes));

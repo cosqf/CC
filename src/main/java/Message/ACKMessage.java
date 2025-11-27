@@ -1,5 +1,7 @@
 package Message;
 
+import java.io.*;
+
 public class ACKMessage implements MessageData {
     private final int noSequence;
     public ACKMessage(int noSequence) {
@@ -8,15 +10,25 @@ public class ACKMessage implements MessageData {
 
     @Override
     public byte[] convertMessageDataToBytes() {
-        byte[] bytes = new byte[2];
-        bytes[0] = 1;
-        bytes[1] = (byte) noSequence;
-        return bytes;
+        ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+        try (DataOutputStream out = new DataOutputStream(byteOut)) {
+            out.writeInt(4);
+            out.writeInt(noSequence);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return byteOut.toByteArray();
     }
 
     public static ACKMessage convertBytesToMessageData(byte[] bytes) {
-        int noSequence = bytes[1];
-        return new ACKMessage(noSequence);
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+             DataInputStream dis = new DataInputStream(bis)) {
+            dis.readInt();
+            int sequence = dis.readInt();
+            return new ACKMessage(sequence);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public int getNoSequence() {

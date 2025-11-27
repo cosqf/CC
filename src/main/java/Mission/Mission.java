@@ -2,7 +2,6 @@ package Mission;
 
 import Utils.Point3D;
 
-import java.util.concurrent.locks.ReentrantLock;
 
 public class Mission implements Comparable<Mission> {
     private final int missionId;
@@ -14,9 +13,8 @@ public class Mission implements Comparable<Mission> {
     private final int updateTime;
     private final boolean isUrgent;
     private boolean isCompleted = false;
-    private final ReentrantLock lock = new ReentrantLock();
+    private static final java.util.concurrent.atomic.AtomicInteger counter = new java.util.concurrent.atomic.AtomicInteger(1);
 
-    // updates: the mission must define how and how often the rover reports back to the mothership
 
     public enum MissionType {
         EXPLORE,
@@ -24,13 +22,8 @@ public class Mission implements Comparable<Mission> {
         TEST_ATMOSPHERE,
     }
 
-    private static int counter = 1;
-
     public Mission(int roverId, MissionType missionType, Point3D areaCoordinates, int areaRadius, int missionTime, int updateTime, boolean isUrgent) {
-        lock.lock();
-        this.missionId = counter;
-        counter++;
-        lock.unlock();
+        this.missionId = counter.getAndIncrement();
         this.roverId = roverId;
         this.missionType = missionType;
         this.areaCoordinates = areaCoordinates;
@@ -39,11 +32,8 @@ public class Mission implements Comparable<Mission> {
         this.updateTime = updateTime;
         this.isUrgent = isUrgent;
     }
-    public Mission(int roverId, MissionType missionType, Point3D areaCoordinates, int areaRadius, int missionTime, int updateTime, boolean isUrgent, boolean isCompleted) {
-        lock.lock();
-        this.missionId = counter;
-        counter++;
-        lock.unlock();
+    public Mission(int missionId, int roverId, MissionType missionType, Point3D areaCoordinates, int areaRadius, int missionTime, int updateTime, boolean isUrgent, boolean isCompleted) {
+        this.missionId = missionId;
         this.roverId = roverId;
         this.missionType = missionType;
         this.areaCoordinates = areaCoordinates;
@@ -91,6 +81,20 @@ public class Mission implements Comparable<Mission> {
         if (this.isUrgent == mission.isUrgent) return 0;
         if (this.isUrgent) return -1;
         return 1;
+    }
+    @Override
+    public String toString() {
+        return "Mission{" +
+                "missionId=" + missionId +
+                ", roverId=" + roverId +
+                ", missionType=" + missionType +
+                ", areaCoordinates=" + areaCoordinates +
+                ", areaRadius=" + areaRadius +
+                ", missionTime=" + missionTime +
+                ", updateTime=" + updateTime +
+                ", isUrgent=" + isUrgent +
+                ", isCompleted=" + isCompleted +
+                '}';
     }
 
     public String toStringForAPI() {

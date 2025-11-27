@@ -1,5 +1,10 @@
 package Message;
 
+import Rover.PhysicalState;
+
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+
 public class RoverInitMessage implements MessageData{
     private int id = -1;
 
@@ -10,16 +15,27 @@ public class RoverInitMessage implements MessageData{
     }
     @Override
     public byte[] convertMessageDataToBytes() {
-        byte[] bytes  = new byte[2];
-        bytes[0] = (byte) 1;
-        bytes[1] = (byte) id;
-        return bytes;
+        ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+        try (DataOutputStream out = new DataOutputStream(byteOut)) {
+            out.writeInt(4);
+            out.writeInt(id);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return byteOut.toByteArray();
     }
+
     public int getId() {return id;}
     public static RoverInitMessage convertBytesToMessageData(byte[] bytes) {
-        int id = bytes[1];
-        if (id == -1) return new RoverInitMessage();
-        return new RoverInitMessage(id);
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+             DataInputStream dis = new DataInputStream(bis)) {
+            dis.readInt();
+            int id = dis.readInt();
+            if (id == -1) return new RoverInitMessage();
+            return new RoverInitMessage(id);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

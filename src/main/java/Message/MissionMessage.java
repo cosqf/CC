@@ -3,6 +3,8 @@ package Message;
 import Mission.Mission;
 import Utils.Point3D;
 
+import java.io.*;
+
 public class MissionMessage implements MessageData{
     private final int missionId;
     private final int roverId;
@@ -40,7 +42,7 @@ public class MissionMessage implements MessageData{
     }
 
     public Mission getMission() {
-        return new Mission (roverId, missionType, areaCoordinates, areaRadius, missionTime, updateTime, isUrgent, isCompleted);
+        return new Mission (missionId, roverId, missionType, areaCoordinates, areaRadius, missionTime, updateTime, isUrgent, isCompleted);
     }
     public int getMissionId() {
         return missionId;
@@ -72,39 +74,62 @@ public class MissionMessage implements MessageData{
 
     @Override
     public byte[] convertMessageDataToBytes() {
-        int num_vars = 11;
-        byte[] bytes  = new byte[num_vars+1];
-        bytes[0] = (byte) num_vars;
-        bytes[1] = (byte) missionId;
-        bytes[2] = (byte) roverId;
-        bytes[3] = (byte) this.missionType.ordinal();
-        bytes[4] = (byte) this.areaCoordinates.x;
-        bytes[5] = (byte) this.areaCoordinates.y;
-        bytes[6] = (byte) this.areaCoordinates.z;
-        bytes[7] = (byte) this.areaRadius;
-        bytes[8] = (byte) this.missionTime;
-        bytes[9] = (byte) this.updateTime;
-        bytes[10] = (byte) (this.isUrgent ? 1 : 0);
-        bytes[11] = (byte) (this.isCompleted ? 1 : 0);
+        byte[] dataContentBytes;
 
-        return bytes;
+        try (ByteArrayOutputStream contentBos = new ByteArrayOutputStream();
+             DataOutputStream contentDos = new DataOutputStream(contentBos)) {
+
+            contentDos.writeInt(this.missionId);
+            contentDos.writeInt(this.roverId);
+            contentDos.writeInt(this.missionType.ordinal());
+            contentDos.writeDouble(this.areaCoordinates.x);
+            contentDos.writeDouble(this.areaCoordinates.y);
+            contentDos.writeDouble(this.areaCoordinates.z);
+            contentDos.writeInt(this.areaRadius);
+            contentDos.writeInt(this.missionTime);
+            contentDos.writeInt(this.updateTime);
+            contentDos.writeByte(this.isUrgent ? 1 : 0);
+            contentDos.writeByte(this.isCompleted ? 1 : 0);
+
+            contentDos.flush();
+            dataContentBytes = contentBos.toByteArray();
+
+        } catch (IOException e) {
+            throw new RuntimeException("Error during content serialization.", e);
+        }
+        return MessageData.addSizeToArray(dataContentBytes);
     }
 
     public static MissionMessage convertBytesToMessageData(byte[] bytes) {
-        int missionId = bytes[1];
-        int roverId = bytes[2];
-        Mission.MissionType missionType = Mission.MissionType.values()[bytes[3]];
-        int x = bytes[4];
-        int y = bytes[5];
-        int z = bytes[6];
-        Point3D coordinates = new Point3D(x,y,z);
-        int areaRadius = bytes[7];
-        int missionTime = bytes[8];
-        int updateTime = bytes[9];
-        boolean isUrgent = bytes[10] == 1;
-        boolean isCompleted = bytes[11] == 1;
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+             DataInputStream dis = new DataInputStream(bis)) {
 
-        return new MissionMessage(missionId, roverId, missionType, coordinates, areaRadius, missionTime, updateTime, isUrgent, isCompleted);
+            dis.readInt();
+
+            int missionId = dis.readInt();
+            int roverId = dis.readInt();
+            int missionTypeOrdinal = dis.readInt();
+            Mission.MissionType missionType = Mission.MissionType.values()[missionTypeOrdinal];
+
+            double x = dis.readDouble();
+            double y = dis.readDouble();
+            double z = dis.readDouble();
+            Point3D coordinates = new Point3D(x, y, z);
+
+            int areaRadius = dis.readInt();
+            int missionTime = dis.readInt();
+            int updateTime = dis.readInt();
+
+            boolean isUrgent = dis.readByte() == 1;
+            boolean isCompleted = dis.readByte() == 1;
+
+            return new MissionMessage(missionId, roverId, missionType, coordinates, areaRadius, missionTime, updateTime, isUrgent, isCompleted);
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            throw new RuntimeException("Invalid MissionType ordinal in byte data.", e);
+        }
     }
 
     @Override

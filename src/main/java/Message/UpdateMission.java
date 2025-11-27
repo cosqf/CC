@@ -1,6 +1,8 @@
 package Message;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
@@ -32,36 +34,33 @@ public class UpdateMission implements MessageData {
 
     @Override
     public byte[] convertMessageDataToBytes() {
-        try {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] dataContentBytes;
+        try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+             DataOutputStream out = new DataOutputStream(byteOut)) {
+                out.writeInt(idMission);
+                out.writeInt(idRover);
+                out.writeInt(completionLevel);
+                out.writeInt(extraData.length);
+                out.write(extraData);
 
-            out.write((byte) idMission);
-            out.write((byte) idRover);
-            out.write((byte) completionLevel);
-            out.write((byte) extraData.length);
-            out.write(extraData);
+                byteOut.flush();
+                dataContentBytes = byteOut.toByteArray();
 
-            byte[] bytes =  out.toByteArray();
-
-            byte[] bytesWithLength = new byte[bytes.length+1];
-            bytesWithLength[0] = (byte) bytes.length;
-            System.arraycopy(bytes, 0, bytesWithLength, 1, bytes.length);
-
-            return bytesWithLength;
         } catch (Exception e) {
             throw new RuntimeException("Error converting message to bytes", e);
         }
+        return MessageData.addSizeToArray(dataContentBytes);
     }
 
     public static UpdateMission convertBytesToMessageData(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
 
-        int totalLength = Byte.toUnsignedInt(buffer.get());
-        int idMission = Byte.toUnsignedInt(buffer.get());
-        int idRover = Byte.toUnsignedInt(buffer.get());
-        int completionLevel = Byte.toUnsignedInt(buffer.get());
+        int totalLength = buffer.getInt();
+        int idMission = buffer.getInt();
+        int idRover = buffer.getInt();
+        int completionLevel = buffer.getInt();
 
-        int extraDataLength = Byte.toUnsignedInt(buffer.get());
+        int extraDataLength = buffer.getInt();
         byte[] extraData = new byte[extraDataLength];
         for (int i = 0; i < extraDataLength; i++) {
             extraData[i]=buffer.get();

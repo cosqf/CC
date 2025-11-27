@@ -14,10 +14,10 @@ public class Rover {
     private Point3D position;
     private MissionState state = MissionState.IDLE;
     private double batteryLevel = 100;
-    private Base base;
-    private List<String> inventory = new ArrayList<>();
+    private final Base base;
+    private final List<String> inventory = new ArrayList<>();
     private final int maxInventorySpace;
-    private List <PhysicalState> physicalStates;
+    private final List <PhysicalState> physicalStates;
 
     private final RoverMissions roverMissions;
     private final RoverConnection roverConnection;
@@ -103,7 +103,6 @@ public class Rover {
                 setId(roverMsg.getId());
                 break;
             case MISSION:
-
                 MissionMessage missionMsg = (MissionMessage) msg;
                 this.roverMissions.addMission(missionMsg.getMission());
                 break;

@@ -2,6 +2,8 @@ package Message;
 
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 
@@ -66,63 +68,47 @@ public class Message {
 
     // --- SERIALIZAÇÃO ---
     public byte[] convertMessageToBytes() {
-        try {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] contentBytes;
+        try (ByteArrayOutputStream contentOutBytes = new ByteArrayOutputStream();
+             DataOutputStream contentOut = new DataOutputStream(contentOutBytes)) {
 
-            out.write((byte) sequenceNumber);
-            out.write((byte) messageId);
-            out.write((byte) ackNumber); // <--- Escrever o ACK no cabeçalho
-            out.write((byte) messageDataType.ordinal());
-            out.write(isFragmented ? 1 : 0);
+            contentOut.writeInt(sequenceNumber);
+            contentOut.writeInt(messageId);
+            contentOut.write(ackNumber);
+            contentOut.writeInt(messageDataType.ordinal());
+            contentOut.write(isFragmented ? 1 : 0);
 
             byte[] dataBytes = data.convertMessageDataToBytes();
-            for (byte b : dataBytes) { // O teu loop original (pode ser otimizado com out.write(bytes), mas mantive igual)
-                out.write(b);
-            }
+            contentOut.write(dataBytes);
 
-            byte[] bytes = out.toByteArray();
+            contentOut.flush();
+            contentBytes = contentOutBytes.toByteArray();
 
-            // Adicionar tamanho total
-            byte[] bytesWithLength = new byte[bytes.length + 1];
-            bytesWithLength[0] = (byte) out.size();
-            System.arraycopy(bytes, 0, bytesWithLength, 1, bytes.length);
-
-            return bytesWithLength;
-
-        } catch (Exception e) {
-            throw new RuntimeException("Error converting message to bytes", e);
+        } catch (IOException e) {
+            throw new RuntimeException("Error serializing content.", e);
         }
+        return MessageData.addSizeToArray(contentBytes);
     }
 
     // --- DESERIALIZAÇÃO ---
     public static Message convertBytesToMessage(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
 
-        int totalLength = Byte.toUnsignedInt(buffer.get()); // Consome o tamanho
+        int totalLength = buffer.getInt();
 
-        int sequenceNumber = Byte.toUnsignedInt(buffer.get());
-        int messageId = Byte.toUnsignedInt(buffer.get());
-        int ackNumber = buffer.get(); // <--- Ler o ACK (como byte assinado para permitir -1)
-
-        int messageDataTypeOrdinal = Byte.toUnsignedInt(buffer.get());
-        boolean isFragmented = Byte.toUnsignedInt(buffer.get()) != 0;
+        int sequenceNumber = buffer.getInt();
+        int messageId = buffer.getInt();
+        int ackNumber = buffer.get();
+        int messageDataTypeOrdinal = buffer.getInt();
+        boolean isFragmented = buffer.get() != 0;
 
         MessageDataTypes dataType = MessageDataTypes.values()[messageDataTypeOrdinal];
 
-        // Calcular tamanho dos dados restantes
-        int headerSize = 4; // seq + id + ack + type
-        int dataLen = totalLength - headerSize;
-
-        // NOTA: O teu código original lia o tamanho dos dados a seguir.
-        // Se o teu convertMessageDataToBytes inclui o tamanho no início, o código abaixo funciona.
-        // Caso contrário, temos de ajustar. Assumindo que funciona como antes:
-
-        // Se os dados tiverem o tamanho no primeiro byte (como tinhas antes):
-        // Vamos usar a lógica de ler byte a byte como tinhas:
-        int payloadSize = Byte.toUnsignedInt(buffer.get());
-        byte[] dataBytes = new byte[payloadSize + 1];
-        dataBytes[0] = (byte) payloadSize;
-        for (int i = 1; i < payloadSize + 1; i++) dataBytes[i] = buffer.get();
+        int dataPayloadSize = buffer.getInt();
+        byte[] data = new byte[dataPayloadSize];
+        buffer.get(data, 0, dataPayloadSize);
+        
+        byte[] dataBytes = MessageData.addSizeToArray(data);
 
         MessageData mData = null;
         switch (dataType) {
@@ -145,9 +131,10 @@ public class Message {
                 mData = ACKMessage.convertBytesToMessageData(dataBytes);
                 break;
             default:
-                // Opcional: tratar caso desconhecido ou deixar mData como null
+                // Handle unknown message types
                 break;
         }
+
         return new Message(sequenceNumber, messageId, ackNumber, dataType, isFragmented, mData);
     }
 
