@@ -4,17 +4,15 @@
 
     import Mission.Mission;
     import java.net.InetAddress;
-    import java.util.ArrayList;
-    import java.util.Collection;
+    import java.util.*;
+
     import Message.*;
     import Message.MissionMessage;
-    import java.util.HashMap;
-    import java.util.Map;
 
     public class Mothership { // controller
         private final Map<Integer, RoverInfo> rovers = new HashMap<>();
         public MothershipMissions mothershipMissions;
-        private int localSequenceNumber = 0;
+        public MothershipConnection connection;
 
         public void updateRoverInfoWithTelemetry(Message msg) {
             if (msg.getMessageDataType() != Message.MessageDataTypes.ROVER_TELEMETRY) return;
@@ -43,26 +41,21 @@
 
             roverInfo.updateLastActiveTimestamp(System.currentTimeMillis());
         }
+        public void sendMission(MissionMessage msg) {
+            connection.sendMission(msg);
+        }
 
         public static void main(String[] args) {
             Mothership mothership = new Mothership();
-            MothershipConnection connection = new MothershipConnection(mothership);
-            connection.startServer();
-            mothership.mothershipMissions = new MothershipMissions();
+            mothership.connection = new MothershipConnection(mothership);
+            mothership.connection.startServer();
+            mothership.mothershipMissions = new MothershipMissions(mothership);
         }
 
-        public Message generateReply(Message receivedMsg) {
+        public Message generateReply(Message receivedMsg, int ackNum) {
             Message reply = null;
 
-            // 1. CALCULAR O ACK (Lógica TCP)
-            int payloadSize = 0;
-            if (receivedMsg.getMessageData() != null) {
-                payloadSize = receivedMsg.getMessageData().convertMessageDataToBytes().length;
-            }
-            int ackNum = receivedMsg.getSequenceNumber() + (payloadSize > 0 ? payloadSize : 1);
-
             switch (receivedMsg.getMessageDataType()) {
-
                 // --- PREVENÇÃO DE LOOP ---
                 case ACK:
                     return null; // Não responder a ACKs para evitar loops infinitos
@@ -78,7 +71,7 @@
                     else idParaRegistar = givenID;
 
                     reply = new Message(
-                            this.localSequenceNumber++,
+                            receivedMsg.getSequenceNumber()+1,
                             ackNum,
                             Message.MessageDataTypes.ROVER_INIT,
                             new RoverInitMessage(idParaRegistar)
@@ -101,7 +94,7 @@
                     // Nota: O sequenceNumber deve vir do servidor (localSequenceNumber++)
                     // O ackNum deve vir calculado corretamente (Seq + Len)
                     reply = new Message(
-                            this.localSequenceNumber++,
+                            receivedMsg.getSequenceNumber()+1,
                             ackNum,
                             Message.MessageDataTypes.MISSION,
                             new MissionMessage(mission));
@@ -111,10 +104,9 @@
                     break;
             }
 
-            // Fallback: Envia ACK puro (para ACKs perdidos sem dados ou erros)
             if (reply == null) {
                 reply = new Message(
-                        this.localSequenceNumber++,
+                        receivedMsg.getSequenceNumber()+1,
                         ackNum,
                         Message.MessageDataTypes.ACK,
                         new ACKMessage(receivedMsg.getSequenceNumber())
@@ -132,6 +124,9 @@
 
         public Collection<RoverInfo> getRoverInfo() {
             return this.rovers.values();
+        }
+        public Set<Integer> getRoverIDs() {
+            return this.rovers.keySet();
         }
 
         public Collection<Mission> getActiveMissions() {

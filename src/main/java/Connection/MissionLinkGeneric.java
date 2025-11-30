@@ -7,6 +7,5 @@ import java.net.DatagramSocket;
 
 public interface MissionLinkGeneric {
     void processMessageContent(Message msg, DatagramPacket packet);
-    void sendResponse(DatagramSocket socket, DatagramPacket packet, Message reply);
-    Message generateReply(Message msg);
+    Message generateReply(Message msg, int ackNum);
 }

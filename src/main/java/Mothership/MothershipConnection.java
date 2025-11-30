@@ -4,6 +4,8 @@ import API.APIServer;
 import Connection.MissionLinkServer;
 import Connection.NetworkConfig;
 import Connection.TelemetryStreamServer;
+import Message.Message;
+import Message.MissionMessage;
 
 public class MothershipConnection {
     private MissionLinkServer missionLinkServer;
@@ -13,6 +15,15 @@ public class MothershipConnection {
 
     public MothershipConnection(Mothership mothership) {
         this.mothership = mothership;
+    }
+
+    public void sendMission (MissionMessage missionMessage) {
+        Message msg = new Message(0, Message.MessageDataTypes.MISSION, missionMessage);
+
+        int roverID = missionMessage.getRoverId();
+        RoverInfo r = mothership.getRoverById(roverID);
+        missionLinkServer.enqueueMessage(msg, r.getRoverIpAddress(), r.getRoverPort());
+        System.out.println("[MOTHERSHIP] sent a mission to Rover " + roverID + ".");
     }
 
     public void startServer() {

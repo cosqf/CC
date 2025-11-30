@@ -8,6 +8,7 @@ import Mothership.Mothership;
 import Mothership.RoverInfo;
 import java.io.IOException;
 import java.net.*;
+import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -21,6 +22,15 @@ public class MissionLinkServer implements Runnable, MissionLinkGeneric { //UDP
         this.mothership = mothership;
     }
 
+    public void enqueueMessage(Message message, InetAddress roverIp, int roverPort) {
+        try {
+            Package p = new Package(roverIp.getHostAddress(), roverPort, message);
+            outgoingQueue.put(p);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
     @Override
     public void run() {
         DatagramSocket socket = null;
@@ -28,8 +38,9 @@ public class MissionLinkServer implements Runnable, MissionLinkGeneric { //UDP
             socket = new DatagramSocket(port);
             System.out.println("MissionLink UDP Server running on port " + port);
 
-            Thread receiverThread = new Thread(new MissionLinkReceiver(socket, this));
-            Thread senderThread = new Thread(new MissionLinkSender(socket, this.outgoingQueue));
+            MissionLinkSender sender = new MissionLinkSender(socket, this.outgoingQueue);
+            Thread senderThread = new Thread(sender);
+            Thread receiverThread = new Thread(new MissionLinkReceiver(socket, this, sender));
 
             receiverThread.start();
             senderThread.start();
@@ -56,62 +67,8 @@ public class MissionLinkServer implements Runnable, MissionLinkGeneric { //UDP
                 break;
         }
     }
-
     @Override
-    public void sendResponse(DatagramSocket socket, DatagramPacket requestPacket, Message reply) {
-        try {
-            byte[] replyBytes = reply.convertMessageToBytes();
-
-            DatagramPacket responsePacket = new DatagramPacket(
-                    replyBytes, replyBytes.length, requestPacket.getAddress(), requestPacket.getPort());
-
-            socket.send(responsePacket);
-            System.out.println("[ML] Sent reply to Rover: ID = " + reply.getMessageId());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public Message generateReply(Message msg) {
-        // 1. Obter contexto da conexão (Session State)
-        // Assumindo que o ID do rover vem na mensagem ou nos dados
-        int roverId = -1;
-        if (msg.getMessageData() instanceof RequestMission) {
-            roverId = ((RequestMission) msg.getMessageData()).getIdRover();
-        }
-        // Adiciona lógica para extrair ID de outros tipos de mensagem se necessário
-
-        RoverInfo rInfo = (roverId != -1) ? mothership.getRoverById(roverId) : null;
-        // 2. CAMADA DE PROTOCOLO: Verificação de Duplicados (Cache Hit)
-        if (rInfo != null && msg.getMessageDataType() == Message.MessageDataTypes.REQUEST_MISSION) {
-            // Verifica se o Seq recebido é menor ou igual ao último processado
-            if (msg.getSequenceNumber() <= rInfo.getLastProcessedSequenceNumber()) {
-                System.out.println("[LinkServer] ⚠️ Retransmissão detetada (Seq " + msg.getSequenceNumber() + ").");
-
-                Message cached = rInfo.getLastSentMessage();
-                if (cached != null) {
-                    System.out.println("[LinkServer] 🔄 Devolvendo resposta em cache.");
-                    return cached; // <--- Corta o fluxo aqui e devolve a cópia
-                }
-            }
-        }
-
-        // 3. CAMADA DE APLICAÇÃO: Gerar nova resposta (Chama a Mothership)
-        // Se não for duplicado, deixamos a Mothership trabalhar
-        Message reply = mothership.generateReply(msg);
-
-        // 4. CAMADA DE PROTOCOLO: Atualizar Estado e Cache
-        if (rInfo != null && reply != null) {
-            // Atualiza o último Seq processado
-            rInfo.setLastProcessedSequenceNumber(msg.getSequenceNumber());
-
-            // Guarda a resposta na cache se for uma Missão
-            if (msg.getMessageDataType() == Message.MessageDataTypes.REQUEST_MISSION) {
-                rInfo.setLastSentMessage(reply);
-            }
-        }
-
-        return reply;
+    public Message generateReply(Message msg, int ackNum) {
+        return mothership.generateReply(msg, ackNum);
     }
 }

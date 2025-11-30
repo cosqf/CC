@@ -18,7 +18,6 @@ public class MissionLinkClient implements Runnable, MissionLinkGeneric {
     private final Rover rover;
     private MissionLinkReceiver receiver;
     private MissionLinkSender sender;
-    private int lastProcessedSeq = -1; // Variável de memória essencial
 
     public MissionLinkClient(String serverIP, int serverPort, Rover rover) {
         this.serverIP = serverIP;
@@ -41,7 +40,7 @@ public class MissionLinkClient implements Runnable, MissionLinkGeneric {
             DatagramSocket socket = new DatagramSocket();
 
             this.sender = new MissionLinkSender(socket, this.outgoingQueue);
-            this.receiver = new MissionLinkReceiver(socket, this);
+            this.receiver = new MissionLinkReceiver(socket, this, this.sender);
 
             Thread senderThread = new Thread(this.sender);
             Thread receiverThread = new Thread(this.receiver);
@@ -62,22 +61,6 @@ public class MissionLinkClient implements Runnable, MissionLinkGeneric {
 
     @Override
     public void processMessageContent(Message msg, DatagramPacket packet) {
-        // 1. Processar ACK (Silencioso, ou podes por log normal se quiseres)
-        if (msg.getAckNumber() != -2 && this.sender != null) {
-            this.sender.confirmAck(msg.getAckNumber());
-        }
-
-        // 2. FILTRO DE DUPLICADOS (VERMELHO)
-        if (msg.getSequenceNumber() <= lastProcessedSeq) {
-            UDPPrint.logError("RCV", msg, "Já processado. Ignorado.");
-            System.out.println(msg);
-            return;
-        }
-
-        // Atualizar memória
-        lastProcessedSeq = msg.getSequenceNumber();
-
-        // 3. PROCESSAMENTO REAL (VERDE)
         switch (msg.getMessageDataType()) {
             case ROVER_INIT:
                 RoverInitMessage message = (RoverInitMessage) msg.getMessageData();
@@ -93,28 +76,11 @@ public class MissionLinkClient implements Runnable, MissionLinkGeneric {
                 // WiresharkLogger.log("RCV", msg, "ACK/Outro recebido", false);
                 break;
         }
-        System.out.println("[ML] Received: " + msg.toString());
         rover.processMessage(msg.getMessageDataType(), msg.getMessageData());
     }
 
     @Override
-    public void sendResponse(DatagramSocket socket, DatagramPacket requestPacket, Message reply) {
-        try {
-            byte[] replyBytes = reply.convertMessageToBytes();
-
-            DatagramPacket responsePacket = new DatagramPacket(
-                    replyBytes, replyBytes.length, requestPacket.getAddress(), requestPacket.getPort());
-
-            socket.send(responsePacket);
-            System.out.println("[ML] Sent reply to Mothership: ID = " + reply.getMessageId());
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
+    public Message generateReply(Message msg, int ackNum) {
+        return this.rover.generateReply(msg, ackNum);
     }
-    @Override
-    public Message generateReply(Message msg) {
-        return this.rover.generateReply(msg);
-    }
-
 }

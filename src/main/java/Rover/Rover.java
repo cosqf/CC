@@ -127,7 +127,7 @@ public class Rover {
         }
     }
 
-    public Message generateReply(Message receivedMsg) {
+    public Message generateReply(Message receivedMsg, int ackNum) {
         Message reply = null;
 
         switch (receivedMsg.getMessageDataType()) {
@@ -142,7 +142,7 @@ public class Rover {
 
         if (reply == null) { // no reply needed, send an ACK only
             reply = new Message(receivedMsg.getSequenceNumber()+1,
-                    receivedMsg.getMessageId(),
+                    ackNum,
                     Message.MessageDataTypes.ACK,
                     new ACKMessage(receivedMsg.getSequenceNumber())
             );

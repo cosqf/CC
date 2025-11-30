@@ -8,7 +8,9 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MissionLinkSender implements Runnable {
     private final DatagramSocket socket;
@@ -17,9 +19,15 @@ public class MissionLinkSender implements Runnable {
     // Variáveis partilhadas para controlo
     private static final int MAX_TIMEOUTS = 10;
     private static final int TIMEOUT_MS = 4000; // 4 segundos para retransmitir
-    private final Object lock = new Object(); // Para sincronizar
-    private volatile int waitingForAckNumber = -1; // Qual o ACK que estamos à espera?
-    private volatile boolean ackReceived = false; // O ACK chegou?
+    private final ConcurrentHashMap<String, Message> lastSentReply = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, PendingAck> pendingAcks = new ConcurrentHashMap<>();
+
+    private static class PendingAck {
+        volatile int waitingForAckNumber;
+        final Object lock = new Object();
+        volatile boolean ackReceived = false;
+        PendingAck(int expected) { this.waitingForAckNumber = expected; }
+    }
 
     private Thread runningThread;
     private boolean running = true;
@@ -28,14 +36,19 @@ public class MissionLinkSender implements Runnable {
         this.socket = socket;
         this.outgoingQueue = outgoingQueue;
     }
+    public void sendMessage(Message msg, String ip, int port) {
+        Package pck = new Package(ip, port, msg);
+        outgoingQueue.add(pck);
+    }
 
     // Método chamado pelo Receiver quando chega um ACK
-    public void confirmAck(int ackNumber) {
-        synchronized (lock) {
-            // Se o ACK confirma o que estamos à espera (ou é maior/mais recente)
-            if (ackNumber >= waitingForAckNumber) {
-                ackReceived = true;
-                lock.notify(); // Acorda a thread Sender!
+    public void confirmAck(int ackNumber, String address) {
+        PendingAck p = pendingAcks.get(address);
+        if (p == null) return;
+        synchronized (p.lock) {
+            if (ackNumber >= p.waitingForAckNumber) {
+                p.ackReceived = true;
+                p.lock.notify();
             }
         }
     }
@@ -52,6 +65,7 @@ public class MissionLinkSender implements Runnable {
             try {
                 Package pkg = outgoingQueue.take();
                 Message msg = pkg.getMessage();
+                System.out.println("-- MISSION LINK SENDER: SENDING MESSAGE --");
 
                 InetAddress ipAddress = InetAddress.getByName(pkg.getToIp());
                 int port = pkg.getToPort();
@@ -66,13 +80,21 @@ public class MissionLinkSender implements Runnable {
 
                 int expectedAck = msg.getSequenceNumber() + (payloadSize > 0 ? payloadSize : 1);
 
-                synchronized (lock) {
-                    waitingForAckNumber = expectedAck;
-                    ackReceived = false;
-                }
+                PendingAck pAck = new PendingAck(expectedAck);
+                pendingAcks.put(ipAddress.getHostAddress(), pAck);
 
                 boolean sentSuccessfully = false;
                 int attempts = 0;
+
+                synchronized (pAck.lock) {
+                    if (!pAck.ackReceived) {
+                        pAck.lock.wait(TIMEOUT_MS);
+                    }
+                    if (pAck.ackReceived) { sentSuccessfully = true; }
+                    else { // timeout -> possibly retry
+                        if (attempts > MAX_TIMEOUTS) { sentSuccessfully = true; }
+                    }
+                }
 
                 while (!sentSuccessfully) {
                     attempts++;
@@ -94,11 +116,11 @@ public class MissionLinkSender implements Runnable {
                     // --------------------------------
 
                     // 3. ESPERAR PELO ACK (com Timeout)
-                    synchronized (lock) {
-                        if (!ackReceived) {
-                            lock.wait(TIMEOUT_MS);
+                    synchronized (pAck.lock) {
+                        if (!pAck.ackReceived) {
+                            pAck.lock.wait(TIMEOUT_MS);
                         }
-                        if (ackReceived) {
+                        if (pAck.ackReceived) {
                             // Sucesso! (Opcional: log verde discreto)
                             // System.out.println(WiresharkLogger.GREEN + "   └── [ML-SND] Confirmado!" + WiresharkLogger.RESET);
                             sentSuccessfully = true;
@@ -111,10 +133,20 @@ public class MissionLinkSender implements Runnable {
                     }
                 }
             } catch (IOException | InterruptedException e) {
-                if (running) System.out.println("[TS] Connection closed or lost.");
+                if (running) System.out.println("[ML SENDER] Connection closed or lost.");
+                e.printStackTrace();
                 running = false;
             }
         }
         System.out.println("Closing ML sender!");
     }
+
+
+    public Message getLastSentReply (String address) {
+        return this.lastSentReply.get(address);
+    }
+    public void setLastSentReply (String address, Message reply) {
+        this.lastSentReply.put(address, reply);
+    }
+
 }
