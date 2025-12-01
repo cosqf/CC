@@ -1,13 +1,13 @@
 package Connection;
 
-import Message.Message;
+import Message.MessageUDP;
 import Message.Package;
 import Utils.UDPPrint;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 
 public class MissionLinkSender implements Runnable {
@@ -16,10 +16,10 @@ public class MissionLinkSender implements Runnable {
 
     // Variáveis partilhadas para controlo
     private static final int MAX_TIMEOUTS = 10;
-    private static final int TIMEOUT_MS = 4000; // 4 segundos para retransmitir
-    private final Object lock = new Object(); // Para sincronizar
-    private volatile int waitingForAckNumber = -1; // Qual o ACK que estamos à espera?
-    private volatile boolean ackReceived = false; // O ACK chegou?
+    private static final int TIMEOUT_MS = 4000;
+    private final Object lock = new Object();
+    private volatile int waitingForAckNumber = -1;
+    private volatile boolean ackReceived = false;
 
     private Thread runningThread;
     private boolean running = true;
@@ -35,7 +35,7 @@ public class MissionLinkSender implements Runnable {
             // Se o ACK confirma o que estamos à espera (ou é maior/mais recente)
             if (ackNumber >= waitingForAckNumber) {
                 ackReceived = true;
-                lock.notify(); // Acorda a thread Sender!
+                lock.notify();
             }
         }
     }
@@ -50,8 +50,9 @@ public class MissionLinkSender implements Runnable {
         this.runningThread = Thread.currentThread();
         while (running) {
             try {
+                // 1. Pegar na próxima mensagem da fila
                 Package pkg = outgoingQueue.take();
-                Message msg = pkg.getMessage();
+                MessageUDP msg = (MessageUDP) pkg.getMessage();
 
                 InetAddress ipAddress = InetAddress.getByName(pkg.getToIp());
                 int port = pkg.getToPort();
@@ -71,27 +72,37 @@ public class MissionLinkSender implements Runnable {
                     ackReceived = false;
                 }
 
+                // --- PASSO 1: FRAGMENTAR A MENSAGEM ---
+                // Se for pequena, a lista terá apenas 1 elemento.
+                // Se for grande, terá vários.
+                List<MessageUDP> fragments = FragManager.fragmentMessage(msg);
+
                 boolean sentSuccessfully = false;
                 int attempts = 0;
 
                 while (!sentSuccessfully) {
                     attempts++;
 
-                    // 2. ENVIAR (ou Reenviar)
-                    byte[] data = msg.convertMessageToBytes();
-                    DatagramPacket packet = new DatagramPacket(data, data.length, ipAddress, port);
-                    socket.send(packet);
+                    // 2. ENVIAR TODOS OS FRAGMENTOS
+                    for (int i = 0; i < fragments.size(); i++) {
+                        MessageUDP frag = fragments.get(i);
+                        byte[] data = frag.convertMessageToBytes();
+                        DatagramPacket packet = new DatagramPacket(data, data.length, ipAddress, port);
 
-                    // --- LOGGING ESTILO WIRESHARK ---
-                    if (attempts > 1) {
-                        // Retransmissão (Fundo Vermelho)
-                        UDPPrint.log("SND", msg, "Retransmission #" + attempts + " -> " + pkg.getToIp(), true);
-                        System.out.println(msg);
-                    } else {
-                        // Envio Normal (Ciano)
-                        UDPPrint.log("SND", msg, "To: " + pkg.getToIp() + " (Waiting ACK " + expectedAck + ")", false);
+                        socket.send(packet);
+
+                        // Pequena pausa para não engasgar a rede se forem muitos fragmentos
+                        if (fragments.size() > 1) Thread.sleep(2);
                     }
-                    // --------------------------------
+
+                    // --- LOGGING ---
+                    String fragInfo = (fragments.size() > 1) ? " (" + fragments.size() + " fragments)" : "";
+
+                    if (attempts > 1) {
+                        UDPPrint.log("SND", msg, "Retransmission #" + attempts + fragInfo + " -> " + pkg.getToIp(), true);
+                    } else {
+                        UDPPrint.log("SND", msg, "To: " + pkg.getToIp() + fragInfo + " (Waiting ACK " + expectedAck + ")", false);
+                    }
 
                     // 3. ESPERAR PELO ACK (com Timeout)
                     synchronized (lock) {
@@ -99,10 +110,8 @@ public class MissionLinkSender implements Runnable {
                             lock.wait(TIMEOUT_MS);
                         }
                         if (ackReceived) {
-                            // Sucesso! (Opcional: log verde discreto)
-                            // System.out.println(WiresharkLogger.GREEN + "   └── [ML-SND] Confirmado!" + WiresharkLogger.RESET);
                             sentSuccessfully = true;
-                        } else { // Timeout! O loop vai repetir e imprimir a vermelho na próxima volta
+                        } else {
                             if (attempts > MAX_TIMEOUTS) {
                                 UDPPrint.log("SND", msg, "Max number of retransmissions hit, dropping message...", true);
                                 sentSuccessfully = true;

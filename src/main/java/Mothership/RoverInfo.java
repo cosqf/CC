@@ -13,7 +13,10 @@ public class RoverInfo {
 
     // Variáveis de Controlo
     private int lastProcessedSequenceNumber = -1;
-    private Message lastSentMessage = null; // A variável que faltava
+    private Message lastSentMessage = null;
+
+    // --- VARIÁVEL PARA CONTAR O ENVIO ---
+    private int outputSequenceNumber = 0;
 
     public RoverInfo (int roverId, InetAddress roverIpAddress, int missionLinkUdpPort) {
         this.roverId = roverId;
@@ -23,7 +26,12 @@ public class RoverInfo {
         this.lastActiveTimestamp = System.currentTimeMillis();
     }
 
-    // --- Getters e Setters da Cache ---
+    // --- SEQUÊNCIA DE SAÍDA (Novo) ---
+    public int getAndIncrementOutputSequenceNumber() {
+        return this.outputSequenceNumber++;
+    }
+
+    // --- CACHE (O que te faltava) ---
     public Message getLastSentMessage() {
         return lastSentMessage;
     }
@@ -32,7 +40,7 @@ public class RoverInfo {
         this.lastSentMessage = msg;
     }
 
-    // --- Getters e Setters da Sequência ---
+    // --- Getters e Setters Normais ---
     public int getLastProcessedSequenceNumber() {
         return lastProcessedSequenceNumber;
     }

@@ -50,9 +50,6 @@ public class Mission implements Comparable<Mission> {
     public int getRoverId() {
         return roverId;
     }
-    public void setRoverId(int id) {
-        this.roverId = id;
-    }
     public MissionType getMissionType() {
         return missionType;
     }
@@ -78,6 +75,7 @@ public class Mission implements Comparable<Mission> {
     public void setCompleted() {
         this.isCompleted = true;
     }
+    public void setRoverId(int roverId) {this.roverId = roverId;}
 
     @Override
     public int compareTo(Mission mission) {
@@ -99,7 +97,6 @@ public class Mission implements Comparable<Mission> {
                 ", isCompleted=" + isCompleted +
                 '}';
     }
-
     public String toStringForAPI() {
         final int WIDTH = 80;
 

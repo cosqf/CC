@@ -77,53 +77,78 @@ public class RoverMissions {
         }).start();
     }
 
-    public long idle () throws InterruptedException { // should always be at base
+    public long idle() throws InterruptedException {
         System.out.println("in idle");
-        if (!rover.getPosition().equals(rover.getBase().getPosition())) System.out.println("Idle but not at base!"); // shouldn't happen
+
+        // --- (Manter verificações de base, reparações e inventário iguais) ---
+        if (!rover.getPosition().equals(rover.getBase().getPosition())) System.out.println("Idle but not at base!");
 
         if (doesAnyPartNeedsFixing()){
             this.rover.setState(Rover.MissionState.ERROR);
             System.out.println("Going to repair!");
-            return System.currentTimeMillis() + Math.round (timeToRepair()) * 1000L;
+            return System.currentTimeMillis() + Math.round(timeToRepair()) * 1000L;
         }
-        // free inventory
+
         List<String> inventory = rover.getInventory();
         if (!inventory.isEmpty()) {
             System.out.println("cleaning inventory");
-            inventory.forEach(inventoryItem -> {rover.getBase().addItem(inventoryItem);});
+            if(rover.getBase() != null)
+                inventory.forEach(item -> rover.getBase().addItem(item));
             this.rover.clearInventory();
         }
-        // decision to charge if under 50%
+
+        // Carregar se bateria baixa e sem missão (lógica preventiva)
         if ((currentMission == null || currentMission.isCompleted()) && rover.getBatteryLevel() < 50) {
             this.rover.setState(Rover.MissionState.CHARGING);
-            System.out.println("going to charge!");
-            return System.currentTimeMillis() + Math.round (timeToFullyCharge()) * 1000L;
+            System.out.println("going to charge (preventive)!");
+            return System.currentTimeMillis() + Math.round(timeToFullyCharge()) * 1000L;
         }
 
+        // --- NOVA LÓGICA DE DECISÃO ---
         if (currentMission == null || currentMission.isCompleted()) {
-            if (missionsToDo.isEmpty()) connection.requestMission();
-            currentMission = missionsToDo.take(); // blocks here
-        }
-        System.out.println("Has mission!");
 
-        // decision to charge if it can't make it
-        boolean willBatterySurvive = willBatterySurvive(currentMission);
+            if (missionsToDo.isEmpty()) {
+                connection.requestMission();
+                // Pequeno return para não bloquear a thread indefinidamente no take() se a rede falhar
 
-        if (!willBatterySurvive && this.rover.getBatteryLevel() == 100) {
-            System.out.println("Can't do mission! Discarding");
-            connection.discardMission(currentMission, rover.getId());
-            this.currentMission = null;
-            return System.currentTimeMillis();
-        }
-        if (!willBatterySurvive) {
-            this.rover.setState(Rover.MissionState.CHARGING);
-            System.out.println("going to charge!");
-            return System.currentTimeMillis() + Math.round (timeToFullyCharge() * 1000L);
+            }
+
+            // 1. VARIÁVEL LOCAL: A missão está "em análise", ainda não foi aceite.
+            Mission candidate = missionsToDo.take();
+            System.out.println("Analyzing candidate Mission ID: " + candidate.getMissionId());
+
+            // 2. Validar Bateria na Candidata
+            boolean willBatterySurvive = willBatterySurvive(candidate);
+
+            // CENÁRIO A: Missão Impossível (Bateria cheia e não chega)
+            // Nota: Usei >= 99 em vez de == 100 por segurança com doubles
+            if (!willBatterySurvive && this.rover.getBatteryLevel() >= 99) {
+                System.out.println("Can't do mission! Discarding ID " + candidate.getMissionId());
+
+                // Descarta a candidata. O this.currentMission continua a ser NULL.
+                connection.discardMission(candidate, rover.getId());
+
+                // Retorna imediatamente para pedir outra no próximo ciclo
+                return System.currentTimeMillis();
+            }
+
+            // CENÁRIO B: Missão Aceite (mas precisa de carga)
+            if (!willBatterySurvive) {
+                this.currentMission = candidate; // Aprovada! Guardamos no estado.
+                this.rover.setState(Rover.MissionState.CHARGING);
+                System.out.println("Mission accepted but needs charge. Charging...");
+                return System.currentTimeMillis() + Math.round(timeToFullyCharge() * 1000L);
+            }
+
+            // CENÁRIO C: Missão Aceite (e pronta a arrancar)
+            this.currentMission = candidate; // Aprovada!
+            System.out.println("Has mission! ID " + currentMission.getMissionId());
         }
 
+        // Se chegámos aqui, temos uma currentMission válida e bateria para ela
         System.out.println("leaving idle, becoming on the way");
         rover.setState(Rover.MissionState.ON_THE_WAY);
-        return (long) (System.currentTimeMillis() + timeBetweenPlaces(rover.getPosition(),currentMission.getAreaCoordinates()) * 1000L);
+        return (long) (System.currentTimeMillis() + timeBetweenPlaces(rover.getPosition(), currentMission.getAreaCoordinates()) * 1000L);
     }
 
     public long doMission (long busyUntil) throws InterruptedException {

@@ -1,5 +1,6 @@
 package Connection;
 
+import Message.MessageUDP;
 import Message.Message;
 import Message.UpdateMission;
 import Message.Package;
@@ -7,6 +8,7 @@ import Message.RequestMission;
 import Mothership.Mothership;
 import Mothership.RoverInfo;
 import java.io.IOException;
+import java.util.List;
 import java.net.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -38,7 +40,7 @@ public class MissionLinkServer implements Runnable, MissionLinkGeneric { //UDP
         }
     }
 
-    public void processMessageContent(Message msg, DatagramPacket packet) {
+    public void processMessageContent(MessageUDP msg, DatagramPacket packet) {
         System.out.println("[ML] Received: " + msg.toString());
 
         switch (msg.getMessageDataType()) {
@@ -58,22 +60,40 @@ public class MissionLinkServer implements Runnable, MissionLinkGeneric { //UDP
     }
 
     @Override
-    public void sendResponse(DatagramSocket socket, DatagramPacket requestPacket, Message reply) {
+    public void sendResponse(DatagramSocket socket, DatagramPacket requestPacket, MessageUDP reply) {
         try {
-            byte[] replyBytes = reply.convertMessageToBytes();
 
-            DatagramPacket responsePacket = new DatagramPacket(
-                    replyBytes, replyBytes.length, requestPacket.getAddress(), requestPacket.getPort());
+            List<MessageUDP> fragments = FragManager.fragmentMessage(reply);
+            if (fragments.size() > 1) {
+                System.out.println("[ML Server] Sending fragmented reply ID " + reply.getMessageId() +
+                        " (" + fragments.size() + " parts).");
+            } else {
+                System.out.println("[ML Server] Sending reply to Rover: ID = " + reply.getMessageId());
+            }
 
-            socket.send(responsePacket);
-            System.out.println("[ML] Sent reply to Rover: ID = " + reply.getMessageId());
-        } catch (IOException e) {
+            // 2. Enviar todos os fragmentos sequencialmente
+            for (MessageUDP frag : fragments) {
+                byte[] replyBytes = frag.convertMessageToBytes();
+
+                DatagramPacket responsePacket = new DatagramPacket(
+                        replyBytes,
+                        replyBytes.length,
+                        requestPacket.getAddress(),
+                        requestPacket.getPort()
+                );
+
+                socket.send(responsePacket);
+                if (fragments.size() > 1) {
+                    Thread.sleep(2);
+                }
+            }
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
     }
 
     @Override
-    public Message generateReply(Message msg) {
+    public MessageUDP generateReply(MessageUDP msg) {
         // 1. Obter contexto da conexão (Session State)
         // Assumindo que o ID do rover vem na mensagem ou nos dados
         int roverId = -1;
@@ -84,7 +104,7 @@ public class MissionLinkServer implements Runnable, MissionLinkGeneric { //UDP
 
         RoverInfo rInfo = (roverId != -1) ? mothership.getRoverById(roverId) : null;
         // 2. CAMADA DE PROTOCOLO: Verificação de Duplicados (Cache Hit)
-        if (rInfo != null && msg.getMessageDataType() == Message.MessageDataTypes.REQUEST_MISSION) {
+        if (rInfo != null && msg.getMessageDataType() == MessageUDP.MessageDataTypes.REQUEST_MISSION) {
             // Verifica se o Seq recebido é menor ou igual ao último processado
             if (msg.getSequenceNumber() <= rInfo.getLastProcessedSequenceNumber()) {
                 System.out.println("[LinkServer] ⚠️ Retransmissão detetada (Seq " + msg.getSequenceNumber() + ").");
@@ -92,14 +112,14 @@ public class MissionLinkServer implements Runnable, MissionLinkGeneric { //UDP
                 Message cached = rInfo.getLastSentMessage();
                 if (cached != null) {
                     System.out.println("[LinkServer] 🔄 Devolvendo resposta em cache.");
-                    return cached; // <--- Corta o fluxo aqui e devolve a cópia
+                    return (MessageUDP) cached; // <--- Corta o fluxo aqui e devolve a cópia
                 }
             }
         }
 
         // 3. CAMADA DE APLICAÇÃO: Gerar nova resposta (Chama a Mothership)
         // Se não for duplicado, deixamos a Mothership trabalhar
-        Message reply = mothership.generateReply(msg);
+        MessageUDP reply = mothership.generateReply(msg);
 
         // 4. CAMADA DE PROTOCOLO: Atualizar Estado e Cache
         if (rInfo != null && reply != null) {
@@ -107,7 +127,7 @@ public class MissionLinkServer implements Runnable, MissionLinkGeneric { //UDP
             rInfo.setLastProcessedSequenceNumber(msg.getSequenceNumber());
 
             // Guarda a resposta na cache se for uma Missão
-            if (msg.getMessageDataType() == Message.MessageDataTypes.REQUEST_MISSION) {
+            if (msg.getMessageDataType() == MessageUDP.MessageDataTypes.REQUEST_MISSION) {
                 rInfo.setLastSentMessage(reply);
             }
         }

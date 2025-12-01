@@ -1,6 +1,6 @@
 package Utils;
 
-import Message.Message;
+import Message.MessageUDP;
 
 public class UDPPrint {
     public static final String RESET = "\033[0m";
@@ -10,22 +10,22 @@ public class UDPPrint {
     public static final String CYAN = "\033[0;36m";     // Ciano
 
     // Log Genérico (Envios Normais)
-    public static void log(String source, Message msg, String extraInfo, boolean isRetransmission) {
+    public static void log(String source, MessageUDP msg, String extraInfo, boolean isRetransmission) {
         String color = isRetransmission ? RED_BG : CYAN;
         printLine(color, source, msg, extraInfo);
     }
 
     // Log de Erro/Descarte (VERMELHO)
-    public static void logError(String source, Message msg, String extraInfo) {
+    public static void logError(String source, MessageUDP msg, String extraInfo) {
         printLine(RED, source, msg, "[DUPLICATE] " + extraInfo);
     }
 
     // Log de Sucesso/Processamento (VERDE)
-    public static void logSuccess(String source, Message msg, String extraInfo) {
+    public static void logSuccess(String source, MessageUDP msg, String extraInfo) {
         printLine(GREEN, source, msg, "[SUCCESS] " + extraInfo);
     }
 
-    private static void printLine(String color, String source, Message msg, String extraInfo) {
+    private static void printLine(String color, String source, MessageUDP msg, String extraInfo) {
         int len = 0;
         try {
             if (msg.getMessageData() != null) {
