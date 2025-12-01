@@ -7,7 +7,7 @@ import java.util.Arrays;
 // Esta classe serve apenas para transportar um "pedaço" de bytes
 // quando uma mensagem é demasiado grande e precisa de ser partida.
 public class FragData implements MessageData,Serializable {
-    private byte[] dataChunk;
+    private final byte[] dataChunk;
 
     public FragData(byte[] dataChunk) {
         this.dataChunk = dataChunk;

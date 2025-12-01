@@ -1,23 +1,34 @@
 package Message;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 // MENSAGEM UDP (Estende Message)
 public class MessageUDP extends Message {
 
     // --- CAMPOS EXTRAS UDP ---
-    private int sequenceNumber;
-    private int ackNumber;
+    private final int sequenceNumber;
+    private final int ackNumber;
 
     // Fragmentação
-    private int fragmentID;
-    private int fragmentIndex;
-    private int totalFragments;
+    private final int fragmentID;
+    private final int fragmentIndex;
+    private final int totalFragments;
 
     public MessageUDP(int seq, int ack, int fragID, int fragIdx, int totalFrags,
                       MessageDataTypes type, MessageData data) {
         super(type, data);
+        this.sequenceNumber = seq;
+        this.ackNumber = ack;
+        this.fragmentID = fragID;
+        this.fragmentIndex = fragIdx;
+        this.totalFragments = totalFrags;
+    }
+    public MessageUDP(int seq, int ack, int fragID, int fragIdx, int totalFrags,
+                      Message message) {
+        super(message);
         this.sequenceNumber = seq;
         this.ackNumber = ack;
         this.fragmentID = fragID;
@@ -38,60 +49,49 @@ public class MessageUDP extends Message {
 
     @Override
     public byte[] convertMessageToBytes() {
-        try {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] contentBytes;
+        try (ByteArrayOutputStream contentOutBytes = new ByteArrayOutputStream();
+             DataOutputStream contentOut = new DataOutputStream(contentOutBytes)) {
 
             // HEADER UDP
-            out.write((byte) sequenceNumber);
-            out.write((byte) messageId);
-            out.write((byte) ackNumber);
-            out.write((byte) messageDataType.ordinal());
+            contentOut.writeInt(sequenceNumber);
+            contentOut.writeInt(messageId);
+            contentOut.writeInt(ackNumber);
+            contentOut.writeInt(messageDataType.ordinal());
 
             // Fragmentação
-            out.write((byte) fragmentID);
-            out.write((byte) fragmentIndex);
-            out.write((byte) totalFragments);
+            contentOut.writeInt(fragmentID);
+            contentOut.writeInt(fragmentIndex);
+            contentOut.writeInt(totalFragments);
 
             // PAYLOAD
             byte[] dataBytes = data.convertMessageDataToBytes();
-            out.write(dataBytes);
+            contentOut.write(dataBytes);
 
-            byte[] bytes = out.toByteArray();
-
-            // Adicionar tamanho total
-            byte[] bytesWithLength = new byte[bytes.length + 1];
-            bytesWithLength[0] = (byte) bytesWithLength.length;
-            System.arraycopy(bytes, 0, bytesWithLength, 1, bytes.length);
-
-            return bytesWithLength;
-
-        } catch (Exception e) {
-            throw new RuntimeException("Erro ao serializar MessageUDP", e);
+            contentOut.flush();
+            contentBytes = contentOutBytes.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("Error serializing content.", e);
         }
+        return MessageData.addSizeToArray(contentBytes);
     }
 
     public static MessageUDP convertBytesToMessageUDP(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
 
-        // Verifica tamanho mínimo
-        if (bytes.length < 8) {
-            throw new RuntimeException("Pacote UDP demasiado pequeno.");
-        }
+        int totalLength = buffer.getInt();
+        int sequenceNumber = buffer.getInt();
+        int messageId = buffer.getInt();
+        int ackNumber = buffer.getInt();
+        int messageDataTypeOrdinal = buffer.getInt();
 
-        int totalLength = Byte.toUnsignedInt(buffer.get());
-        int sequenceNumber = Byte.toUnsignedInt(buffer.get());
-        int messageId = Byte.toUnsignedInt(buffer.get());
-        int ackNumber = buffer.get();
-
-        int messageDataTypeOrdinal = Byte.toUnsignedInt(buffer.get());
-
-        int fragmentID = Byte.toUnsignedInt(buffer.get());
-        int fragmentIndex = Byte.toUnsignedInt(buffer.get());
-        int totalFragments = Byte.toUnsignedInt(buffer.get());
+        int fragmentID = buffer.getInt();
+        int fragmentIndex = buffer.getInt();
+        int totalFragments = buffer.getInt();
 
         MessageDataTypes dataType = MessageDataTypes.values()[messageDataTypeOrdinal];
 
-        int headerSize = 8;
+        int headerSize = 7 * 4; // int size is 4 bytes, and "total length" doesn't include itself
         int dataLen = totalLength - headerSize;
 
         if (dataLen < 0) {
@@ -101,18 +101,14 @@ public class MessageUDP extends Message {
         byte[] dataBytes = new byte[dataLen];
         buffer.get(dataBytes, 0, dataLen);
 
-        // --- CORREÇÃO CRÍTICA AQUI ---
         MessageData mData;
-
         // Se for um fragmento (parte de um todo), NÃO tentamos converter
         // Guardamos apenas os bytes brutos dentro de um FragData
-        if (totalFragments > 1) {
-            mData = new FragData(dataBytes);
-        } else {
+        if (totalFragments > 1)  mData = new FragData(dataBytes);
+        else {
             // Se for pacote inteiro (1/1), convertemos normalmente para Missão/Telemetria
-            mData = Message.parseMessageData(dataType, dataBytes);
+            mData = parseMessageData(dataType, dataBytes);
         }
-        // -----------------------------
 
         return new MessageUDP(messageId, sequenceNumber, ackNumber,
                 fragmentID, fragmentIndex, totalFragments,
@@ -128,7 +124,6 @@ public class MessageUDP extends Message {
 
     public boolean isFragmented() { return totalFragments > 1; }
 
-    // --- O SEGREDO PARA LIMPAR OS LOGS ---
     @Override
     public String toString() {
         return "UDP { " +

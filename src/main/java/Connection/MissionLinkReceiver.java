@@ -4,10 +4,7 @@ import Message.MessageUDP;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class MissionLinkReceiver implements Runnable {
     private final DatagramSocket socket;
@@ -77,7 +74,7 @@ public class MissionLinkReceiver implements Runnable {
                 if (finalMessage != null) {
                     ML.processMessageContent(finalMessage, packet);
 
-                    MessageUDP reply = (MessageUDP) ML.generateReply(finalMessage);
+                    MessageUDP reply = ML.generateReply(finalMessage);
                     if (reply != null) ML.sendResponse(socket, packet, reply);
                 }
 

@@ -9,14 +9,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Random;
 
 public class FragManager { // Nome da classe alterado
 
     // Tamanho máximo do payload de cada fragmento (Bytes)
     // 512 é seguro para UDP na internet.
     public static int MAX_FRAGMENT_SIZE = 4;
-    private static final Random random = new Random();
 
     /**
      * 1. CORTAR: Divide uma mensagem grande em vários pacotes pequenos

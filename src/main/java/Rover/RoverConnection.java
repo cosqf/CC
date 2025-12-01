@@ -11,6 +11,8 @@ import Message.RoverTelemetryMessage;
 import Message.RoverInitMessage;
 import Mission.Mission;
 
+import java.util.Arrays;
+
 public class RoverConnection {
     private final Rover rover;
     private MissionLinkClient missionLinkClient;
@@ -73,6 +75,9 @@ public class RoverConnection {
         this.localSequenceNumber += (size > 0 ? size : 1);
         missionLinkClient.enqueueMessage(msg);
         System.out.println("[Rover] sent an init message (Seq " + seq + ").");
+        System.out.println("msg " + msg);
+        System.out.println("data " + Arrays.toString(msg.getMessageData().convertMessageDataToBytes()));
+        System.out.println(Arrays.toString(msg.convertMessageToBytes()));
     }
 
     public void sendUpdateMission (UpdateMission updateMission) {
