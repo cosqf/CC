@@ -14,17 +14,31 @@
         public MothershipMissions mothershipMissions;
         public MothershipConnection connection;
 
-        public void updateRoverInfoWithTelemetry(Message msg) {
-            if (msg.getMessageDataType() != Message.MessageDataTypes.ROVER_TELEMETRY) return;
-
-            RoverTelemetryMessage telemetry = (RoverTelemetryMessage) msg.getMessageData();
-            int roverId = telemetry.getId();
-            RoverInfo roverInfo = this.rovers.get(roverId);
-
-            roverInfo.updateLastTelemetryMessage(telemetry);
-            roverInfo.updateLastActiveTimestamp(System.currentTimeMillis());
-            System.out.println("[Mothership] Telemetria atualizada para Rover " + roverId);
+        public static void main(String[] args) {
+            Mothership mothership = new Mothership();
+            mothership.connection = new MothershipConnection(mothership);
+            mothership.connection.startServer();
+            mothership.mothershipMissions = new MothershipMissions(mothership);
         }
+
+    // --- LÓGICA DE TELEMETRIA ---
+    public void updateRoverInfoWithTelemetry(Message msg) {
+        if (msg.getMessageDataType() != Message.MessageDataTypes.ROVER_TELEMETRY) return;
+
+        RoverTelemetryMessage telemetry = (RoverTelemetryMessage) msg.getMessageData();
+        int roverId = telemetry.getId();
+        RoverInfo roverInfo = this.rovers.get(roverId);
+
+        // Proteção contra NullPointerException (Race Condition)
+        if (roverInfo == null) {
+            System.out.println("[Mothership] ⚠️ Recebida telemetria de Rover desconhecido (ID " + roverId + "). Ignorando.");
+            return;
+        }
+
+        roverInfo.updateLastTelemetryMessage(telemetry);
+        roverInfo.updateLastActiveTimestamp(System.currentTimeMillis());
+        System.out.println("[Mothership] Telemetria atualizada para Rover " + roverId);
+    }
 
         public void storeRoverInfoConnection (Message msg, InetAddress ip, int port) {
             if (msg.getMessageDataType() != Message.MessageDataTypes.ROVER_INIT) return;
@@ -45,15 +59,11 @@
             connection.sendMission(msg);
         }
 
-        public static void main(String[] args) {
-            Mothership mothership = new Mothership();
-            mothership.connection = new MothershipConnection(mothership);
-            mothership.connection.startServer();
-            mothership.mothershipMissions = new MothershipMissions(mothership);
-        }
+        public MessageUDP generateReply(MessageUDP receivedMsg, int ackNum) {
+            MessageUDP reply = null;
 
-        public Message generateReply(Message receivedMsg, int ackNum) {
-            Message reply = null;
+            // Campos de fragmentação padrão para pacotes únicos
+            int fragID = 0, fragIdx = 0, totalFrags = 1;
 
             switch (receivedMsg.getMessageDataType()) {
                 // --- PREVENÇÃO DE LOOP ---
@@ -69,10 +79,16 @@
                     RoverInfo rover = this.rovers.get(givenID);
                     if (rover.getLastTelemetryMessage() != null) idParaRegistar = -1;
                     else idParaRegistar = givenID;
+/*
+// Obter RoverInfo para usar o contador DELE
+                RoverInfo rInfoInit = this.rovers.get(idParaRegistar);
+                int seqInit = (rInfoInit != null) ? rInfoInit.getAndIncrementOutputSequenceNumber() : 0;
 
-                    reply = new Message(
-                            receivedMsg.getSequenceNumber()+1,
+ */
+                    reply = new MessageUDP(
+                            receivedMsg.getSequenceNumber()+1, // seqInit
                             ackNum,
+                            fragID, fragIdx, totalFrags,
                             Message.MessageDataTypes.ROVER_INIT,
                             new RoverInitMessage(idParaRegistar)
                     );
@@ -86,16 +102,21 @@
                     Mission mission = this.mothershipMissions.getMission();
 
                     if (mission == null) {
-                        // Tratar erro ou enviar espera
                         break;
                     }
                     mission.setRoverId(req.getIdRover());
                     mothershipMissions.startMission(mission);
                     // Nota: O sequenceNumber deve vir do servidor (localSequenceNumber++)
                     // O ackNum deve vir calculado corretamente (Seq + Len)
-                    reply = new Message(
-                            receivedMsg.getSequenceNumber()+1,
+                    /*
+                    // Usar contador de sequência específico deste Rover
+                RoverInfo rInfoMission = this.rovers.get(req.getIdRover());
+                int seqMission = (rInfoMission != null) ? rInfoMission.getAndIncrementOutputSequenceNumber() : 0;
+                     */
+                    reply = new MessageUDP(
+                            receivedMsg.getSequenceNumber()+1, // seqMission
                             ackNum,
+                            fragID, fragIdx, totalFrags,
                             Message.MessageDataTypes.MISSION,
                             new MissionMessage(mission));
                     break;
@@ -105,9 +126,10 @@
             }
 
             if (reply == null) {
-                reply = new Message(
-                        receivedMsg.getSequenceNumber()+1,
+                reply = new MessageUDP(
+                        0,
                         ackNum,
+                        0,0,1,
                         Message.MessageDataTypes.ACK,
                         new ACKMessage(receivedMsg.getSequenceNumber())
                 );

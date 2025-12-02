@@ -79,7 +79,7 @@ public class GroundControl {
         }
     }
 
-    private void optionMenu(String endpoint) throws Exception {
+    private void optionMenu(String endpoint) {
         Scanner sc = new Scanner(System.in);
         try {
             boolean running = true;

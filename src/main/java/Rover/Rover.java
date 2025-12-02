@@ -141,8 +141,9 @@ public class Rover {
         }
 
         if (reply == null) { // no reply needed, send an ACK only
-            reply = new Message(receivedMsg.getSequenceNumber()+1,
-                    ackNum,
+            reply = new MessageUDP(receivedMsg.getSequenceNumber()+1,
+                    receivedMsg.getMessageId(),
+                    0, 0, 1,
                     Message.MessageDataTypes.ACK,
                     new ACKMessage(receivedMsg.getSequenceNumber())
             );

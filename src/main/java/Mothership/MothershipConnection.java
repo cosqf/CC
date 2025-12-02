@@ -6,6 +6,7 @@ import Connection.NetworkConfig;
 import Connection.TelemetryStreamServer;
 import Message.Message;
 import Message.MissionMessage;
+import Connection.FragManager;
 
 public class MothershipConnection {
     private MissionLinkServer missionLinkServer;
@@ -35,6 +36,8 @@ public class MothershipConnection {
         String ms_ip = networkConfig.getIp(NetworkConfig.ID.MOTHERSHIP_IP);
 
         try {
+            FragManager.MAX_FRAGMENT_SIZE = 4;
+
             missionLinkServer = new MissionLinkServer(Integer.parseInt(ml_port), mothership);
             Thread udpServer = new Thread(missionLinkServer);
 

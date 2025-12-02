@@ -18,6 +18,7 @@ public class MissionLinkClient implements Runnable, MissionLinkGeneric {
     private final Rover rover;
     private MissionLinkReceiver receiver;
     private MissionLinkSender sender;
+    private int lastProcessedSeq = -1; // Variável de memória essencial
 
     public MissionLinkClient(String serverIP, int serverPort, Rover rover) {
         this.serverIP = serverIP;
@@ -40,7 +41,7 @@ public class MissionLinkClient implements Runnable, MissionLinkGeneric {
             DatagramSocket socket = new DatagramSocket();
 
             this.sender = new MissionLinkSender(socket, this.outgoingQueue);
-            this.receiver = new MissionLinkReceiver(socket, this, this.sender);
+            this.receiver = new MissionLinkReceiver(socket, this);
 
             Thread senderThread = new Thread(this.sender);
             Thread receiverThread = new Thread(this.receiver);

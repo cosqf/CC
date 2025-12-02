@@ -8,7 +8,6 @@ import Mothership.Mothership;
 import Mothership.RoverInfo;
 import java.io.IOException;
 import java.net.*;
-import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -49,7 +48,7 @@ public class MissionLinkServer implements Runnable, MissionLinkGeneric { //UDP
         }
     }
 
-    public void processMessageContent(Message msg, DatagramPacket packet) {
+    public void processMessageContent(MessageUDP msg, DatagramPacket packet) {
         System.out.println("[ML] Received: " + msg.toString());
 
         switch (msg.getMessageDataType()) {
