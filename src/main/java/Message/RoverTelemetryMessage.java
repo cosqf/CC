@@ -164,13 +164,15 @@ public class RoverTelemetryMessage implements MessageData{
         final String SEPARATOR_LINE = "+" + "-".repeat(WIDTH - 2) + "+" + "\n";
         StringBuilder sb = new StringBuilder();
 
+        double roundedBattery = Math.round(this.batteryLevel * 100.0) / 100.0;
+
         sb.append(SEPARATOR_LINE);
         sb.append(String.format("| Rover %d:%-" + (WIDTH - 11 - ((int) Math.log10(Math.abs(this.id)) + 1)) + "s |\n", this.id, ""));
         sb.append(SEPARATOR_LINE);
         sb.append(String.format("| Position -> %-" + (WIDTH - 16) + "s |\n", this.position.toString()));
         sb.append(String.format("| Status -> %-" + (WIDTH - 14) + "s |\n", this.state.toString()));
-        sb.append(String.format("| Battery -> %-" + (WIDTH - 15) + "s |\n", this.batteryLevel + "%"));
-        
+        sb.append(String.format("| Battery -> %-" + (WIDTH - 15) + "s |\n", roundedBattery + "%"));
+
         appendWrappedLine(sb, "Inventory -> ", printInventory(), WIDTH);
         
         appendWrappedLine(sb, "Physical Status -> ", printPhysicalStates(), WIDTH);

@@ -133,7 +133,8 @@ public class MessageUDP extends Message {
                     " | Frag=" + (fragmentIndex + 1) + "/" + totalFragments +
                     " | Data=";
 
-        if (isFragmented()) res = res.concat("[---]");
+        int lenData = this.data.convertMessageDataToBytes().length;
+        if (lenData > 20) res = res.concat(" [too big for log]");
         else res = res.concat(data.toString());
         res = res.concat(" }");
         return res;
