@@ -9,8 +9,6 @@ import Message.Message.MessageDataTypes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class Rover {
     private int id;
@@ -127,8 +125,8 @@ public class Rover {
         }
     }
 
-    public Message generateReply(Message receivedMsg, int ackNum) {
-        Message reply = null;
+    public MessageUDP generateReply(MessageUDP receivedMsg, int ackNum) {
+        MessageUDP reply = null;
 
         switch (receivedMsg.getMessageDataType()) {
             case MISSION:
@@ -142,7 +140,7 @@ public class Rover {
 
         if (reply == null) { // no reply needed, send an ACK only
             reply = new MessageUDP(receivedMsg.getSequenceNumber()+1,
-                    receivedMsg.getMessageId(),
+                    ackNum,
                     0, 0, 1,
                     Message.MessageDataTypes.ACK,
                     new ACKMessage(receivedMsg.getSequenceNumber())

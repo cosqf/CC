@@ -61,7 +61,6 @@
 
         public MessageUDP generateReply(MessageUDP receivedMsg, int ackNum) {
             MessageUDP reply = null;
-
             // Campos de fragmentação padrão para pacotes únicos
             int fragID = 0, fragIdx = 0, totalFrags = 1;
 
@@ -79,14 +78,13 @@
                     RoverInfo rover = this.rovers.get(givenID);
                     if (rover.getLastTelemetryMessage() != null) idParaRegistar = -1;
                     else idParaRegistar = givenID;
-/*
-// Obter RoverInfo para usar o contador DELE
-                RoverInfo rInfoInit = this.rovers.get(idParaRegistar);
-                int seqInit = (rInfoInit != null) ? rInfoInit.getAndIncrementOutputSequenceNumber() : 0;
 
- */
+                    // Obter RoverInfo para usar o contador DELE
+                    RoverInfo rInfoInit = this.rovers.get(idParaRegistar);
+                    int seqInit = (rInfoInit != null) ? rInfoInit.getAndIncrementOutputSequenceNumber() : 0;
+
                     reply = new MessageUDP(
-                            receivedMsg.getSequenceNumber()+1, // seqInit
+                            seqInit,
                             ackNum,
                             fragID, fragIdx, totalFrags,
                             Message.MessageDataTypes.ROVER_INIT,
@@ -106,15 +104,13 @@
                     }
                     mission.setRoverId(req.getIdRover());
                     mothershipMissions.startMission(mission);
-                    // Nota: O sequenceNumber deve vir do servidor (localSequenceNumber++)
-                    // O ackNum deve vir calculado corretamente (Seq + Len)
-                    /*
+
                     // Usar contador de sequência específico deste Rover
-                RoverInfo rInfoMission = this.rovers.get(req.getIdRover());
-                int seqMission = (rInfoMission != null) ? rInfoMission.getAndIncrementOutputSequenceNumber() : 0;
-                     */
+                    RoverInfo rInfoMission = this.rovers.get(req.getIdRover());
+                    int seqMission = (rInfoMission != null) ? rInfoMission.getAndIncrementOutputSequenceNumber() : 0;
+
                     reply = new MessageUDP(
-                            receivedMsg.getSequenceNumber()+1, // seqMission
+                            seqMission,
                             ackNum,
                             fragID, fragIdx, totalFrags,
                             Message.MessageDataTypes.MISSION,
@@ -124,7 +120,6 @@
                 default:
                     break;
             }
-
             if (reply == null) {
                 reply = new MessageUDP(
                         0,

@@ -1,11 +1,10 @@
 package Connection;
 
-import Message.Message;
+import Message.MessageUDP;
 
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 
 public interface MissionLinkGeneric {
-    void processMessageContent(Message msg, DatagramPacket packet);
-    Message generateReply(Message msg, int ackNum);
+    void processMessageContent(MessageUDP msg, DatagramPacket packet);
+    MessageUDP generateReply(MessageUDP msg, int ackNum);
 }

@@ -1,14 +1,15 @@
 package Connection;
 
 import Message.Message;
-import Utils.UDPPrint;
 
 import Message.MessageUDP;
+import Utils.UDPPrint;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.util.*;
-import java.util.HashMap;
+
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MissionLinkReceiver implements Runnable {
@@ -33,15 +34,20 @@ public class MissionLinkReceiver implements Runnable {
             try {
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                 socket.receive(packet);
-                String address = packet.getAddress().getHostAddress();
+                String address = packet.getAddress().getHostAddress() + ":" +  packet.getPort();
+
                 byte[] msgBytes = new byte[packet.getLength()];
                 System.arraycopy(packet.getData(), 0, msgBytes, 0, packet.getLength());
 
                 MessageUDP receivedMsg = MessageUDP.convertBytesToMessageUDP(msgBytes);
-                System.out.println("[ML RECEIVER] MESSAGE: " + receivedMsg.toString());
+                //System.out.println("[ML RECEIVER] MESSAGE: " + receivedMsg.toString());
+
+                if (receivedMsg.getAckNumber() != -2) {
+                    //System.out.println("CONFIRMED ACK: " + receivedMsg.getAckNumber());
+                    this.sender.confirmAck(receivedMsg.getAckNumber(), address);
+                }
 
                 MessageUDP finalMessage = null;
-
                 if (!receivedMsg.isFragmented()) {
                     finalMessage = receivedMsg;
                 } else {
@@ -54,6 +60,7 @@ public class MissionLinkReceiver implements Runnable {
                     for (MessageUDP existing : parts) {
                         if (existing.getFragmentIndex() == receivedMsg.getFragmentIndex()) {
                             alreadyExists = true;
+                            UDPPrint.logError("RCV", existing, "Já processado. Ignorado.");
                             break;
                         }
                     }
@@ -66,29 +73,24 @@ public class MissionLinkReceiver implements Runnable {
                             finalMessage = FragManager.reassembleMessage(parts);
                             reassemblyBuffer.remove(fragID);
                         }
-                    } else {
-                        // System.out.println("[Receiver] Ignored duplicate fragment " + (receivedMsg.getFragmentIndex()+1));
                     }
-                    // ----------------------------------------------
                 }
-
                 if (finalMessage != null) {
                     ML.processMessageContent(finalMessage, packet);
 
                     // calculate ACK
                     int payloadSize = 0;
-                    if (receivedMsg.getMessageData() != null) {
-                        payloadSize = receivedMsg.getMessageData().convertMessageDataToBytes().length;
+                    if (finalMessage.getMessageData() != null) {
+                        payloadSize = finalMessage.getMessageData().convertMessageDataToBytes().length;
                     }
-                    int ackNum = receivedMsg.getSequenceNumber() + (payloadSize > 0 ? payloadSize : 1);
+                    int ackNum = finalMessage.getSequenceNumber() + (payloadSize > 0 ? payloadSize : 1);
 
                     MessageUDP reply = ML.generateReply(finalMessage, ackNum);
-                    // if (reply != null) ML.sendResponse(socket, packet, reply);
                     if (reply != null) {
                         if (reply.getMessageDataType() != Message.MessageDataTypes.ACK) {
                             sender.setLastSentReply(address, reply);
                         }
-                        sender.sendMessage(reply, address, packet.getPort());
+                        sender.sendMessage(reply, packet.getAddress().getHostAddress(), packet.getPort());
                     }
                 }
             } catch (IOException e) {

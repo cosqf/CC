@@ -31,7 +31,6 @@ public class RoverInfo {
         return this.outputSequenceNumber++;
     }
 
-    // --- CACHE (O que te faltava) ---
     public Message getLastSentMessage() {
         return lastSentMessage;
     }

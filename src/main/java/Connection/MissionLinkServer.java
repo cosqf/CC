@@ -3,10 +3,8 @@ package Connection;
 import Message.Message;
 import Message.UpdateMission;
 import Message.Package;
-import Message.RequestMission;
+import Message.MessageUDP;
 import Mothership.Mothership;
-import Mothership.RoverInfo;
-import java.io.IOException;
 import java.net.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -21,7 +19,7 @@ public class MissionLinkServer implements Runnable, MissionLinkGeneric { //UDP
         this.mothership = mothership;
     }
 
-    public void enqueueMessage(Message message, InetAddress roverIp, int roverPort) {
+    public void enqueueMessage(MessageUDP message, InetAddress roverIp, int roverPort) {
         try {
             Package p = new Package(roverIp.getHostAddress(), roverPort, message);
             outgoingQueue.put(p);
@@ -67,7 +65,7 @@ public class MissionLinkServer implements Runnable, MissionLinkGeneric { //UDP
         }
     }
     @Override
-    public Message generateReply(Message msg, int ackNum) {
+    public MessageUDP generateReply(MessageUDP msg, int ackNum) {
         return mothership.generateReply(msg, ackNum);
     }
 }

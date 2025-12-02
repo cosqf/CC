@@ -1,6 +1,6 @@
 package Connection;
 
-import Message.Message;
+import Message.MessageUDP;
 import Message.RoverInitMessage;
 import Message.Package;
 import Rover.Rover;
@@ -18,7 +18,6 @@ public class MissionLinkClient implements Runnable, MissionLinkGeneric {
     private final Rover rover;
     private MissionLinkReceiver receiver;
     private MissionLinkSender sender;
-    private int lastProcessedSeq = -1; // Variável de memória essencial
 
     public MissionLinkClient(String serverIP, int serverPort, Rover rover) {
         this.serverIP = serverIP;
@@ -26,7 +25,7 @@ public class MissionLinkClient implements Runnable, MissionLinkGeneric {
         this.rover = rover;
     }
 
-    public void enqueueMessage(Message message) {
+    public void enqueueMessage(MessageUDP message) {
         try {
             Package p = new Package(serverIP, serverPort, message);
             outgoingQueue.put(p);
@@ -41,7 +40,7 @@ public class MissionLinkClient implements Runnable, MissionLinkGeneric {
             DatagramSocket socket = new DatagramSocket();
 
             this.sender = new MissionLinkSender(socket, this.outgoingQueue);
-            this.receiver = new MissionLinkReceiver(socket, this);
+            this.receiver = new MissionLinkReceiver(socket, this, sender);
 
             Thread senderThread = new Thread(this.sender);
             Thread receiverThread = new Thread(this.receiver);
@@ -61,7 +60,9 @@ public class MissionLinkClient implements Runnable, MissionLinkGeneric {
     }
 
     @Override
-    public void processMessageContent(Message msg, DatagramPacket packet) {
+    public void processMessageContent(MessageUDP msg, DatagramPacket packet) {
+        System.out.println("[ML] Received: " + msg.toString());
+
         switch (msg.getMessageDataType()) {
             case ROVER_INIT:
                 RoverInitMessage message = (RoverInitMessage) msg.getMessageData();
@@ -81,7 +82,7 @@ public class MissionLinkClient implements Runnable, MissionLinkGeneric {
     }
 
     @Override
-    public Message generateReply(Message msg, int ackNum) {
+    public MessageUDP generateReply(MessageUDP msg, int ackNum) {
         return this.rover.generateReply(msg, ackNum);
     }
 }

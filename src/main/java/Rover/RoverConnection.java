@@ -28,7 +28,7 @@ public class RoverConnection {
         RequestMission req = new RequestMission(this.rover.getId());
         MessageUDP msg = new MessageUDP(
                 seq,
-                ackToSend, // O Ack vem em segundo lugar!
+                ackToSend,
                 0, 0, 1,   // Fragmentação (0, 0, 1) vem a seguir
                 MessageUDP.MessageDataTypes.REQUEST_MISSION,
                 req
@@ -75,9 +75,6 @@ public class RoverConnection {
         this.localSequenceNumber += (size > 0 ? size : 1);
         missionLinkClient.enqueueMessage(msg);
         System.out.println("[Rover] sent an init message (Seq " + seq + ").");
-        System.out.println("msg " + msg);
-        System.out.println("data " + Arrays.toString(msg.getMessageData().convertMessageDataToBytes()));
-        System.out.println(Arrays.toString(msg.convertMessageToBytes()));
     }
 
     public void sendUpdateMission (UpdateMission updateMission) {

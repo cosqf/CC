@@ -4,7 +4,7 @@ import API.APIServer;
 import Connection.MissionLinkServer;
 import Connection.NetworkConfig;
 import Connection.TelemetryStreamServer;
-import Message.Message;
+import Message.MessageUDP;
 import Message.MissionMessage;
 import Connection.FragManager;
 
@@ -12,15 +12,27 @@ public class MothershipConnection {
     private MissionLinkServer missionLinkServer;
     private TelemetryStreamServer telemetryStreamServer;
     private APIServer observationAPI;
-    private Mothership mothership;
+    private final Mothership mothership;
+    private int localSequenceNumber = 0;
 
     public MothershipConnection(Mothership mothership) {
         this.mothership = mothership;
     }
 
     public void sendMission (MissionMessage missionMessage) {
-        Message msg = new Message(0, Message.MessageDataTypes.MISSION, missionMessage);
+        int seq = this.localSequenceNumber;
+        int ackToSend = -1;
+        MessageUDP msg = new MessageUDP(
+                seq,
+                ackToSend,
+                0, 0, 1,
+                MessageUDP.MessageDataTypes.MISSION,
+                missionMessage);
 
+        int payloadSize = missionMessage.convertMessageDataToBytes().length;
+        this.localSequenceNumber += (payloadSize > 0 ? payloadSize : 1);
+
+        // getting the ip/port to send to
         int roverID = missionMessage.getRoverId();
         RoverInfo r = mothership.getRoverById(roverID);
         missionLinkServer.enqueueMessage(msg, r.getRoverIpAddress(), r.getRoverPort());
