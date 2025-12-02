@@ -178,7 +178,7 @@ public class RoverMissions {
         if (canDoNextMission()) {
             currentMission = missionsToDo.take();
             rover.setState(Rover.MissionState.ON_THE_WAY);
-            System.out.print("[MISSION -> ON THE WAY TO NEW MISSION] Finished!");    // decision to on the way to new mission
+            System.out.println("[MISSION -> ON THE WAY TO NEW MISSION] Finished!");    // decision to on the way to new mission
             return System.currentTimeMillis() + currentMission.getMissionTime() * 1000L;
         }
         else {

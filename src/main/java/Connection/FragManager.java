@@ -14,7 +14,7 @@ public class FragManager { // Nome da classe alterado
 
     // Tamanho máximo do payload de cada fragmento (Bytes)
     // 512 é seguro para UDP na internet.
-    public static int MAX_FRAGMENT_SIZE = 4;
+    public static int MAX_FRAGMENT_SIZE = 1500;
 
     /**
      * 1. CORTAR: Divide uma mensagem grande em vários pacotes pequenos
@@ -79,7 +79,6 @@ public class FragManager { // Nome da classe alterado
 
             fragments.add(fragmentMsg);
         }
-
         return fragments;
     }
 
@@ -113,10 +112,9 @@ public class FragManager { // Nome da classe alterado
         byte[] fullBytes = fullDataStream.toByteArray();
 
         // 3. Usar o cabeçalho do primeiro fragmento como molde
-        MessageUDP template = fragments.get(0);
+        MessageUDP template = fragments.getFirst();
 
         // 4. Converter os bytes completos no Objeto original (ex: MissionMessage)
-        // NOTA: Message.parseMessageData tem de ser PUBLIC na classe Message
         MessageData originalData = Message.parseMessageData(template.getMessageDataType(), fullBytes);
 
         // 5. Retornar mensagem completa e limpa

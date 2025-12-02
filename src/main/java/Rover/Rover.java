@@ -117,7 +117,6 @@ public class Rover {
                 initiatedLatch.countDown();
                 break;
             case MISSION:
-
                 MissionMessage missionMsg = (MissionMessage) msg;
                 this.roverMissions.addMission(missionMsg.getMission());
                 break;
@@ -126,7 +125,7 @@ public class Rover {
         }
     }
 
-    public MessageUDP generateReply(MessageUDP receivedMsg) {
+    public MessageUDP generateReply(MessageUDP receivedMsg, int ackNum) {
         MessageUDP reply = null;
 
         switch (receivedMsg.getMessageDataType()) {
@@ -141,7 +140,7 @@ public class Rover {
 
         if (reply == null) { // no reply needed, send an ACK only
             reply = new MessageUDP(receivedMsg.getSequenceNumber()+1,
-                    receivedMsg.getMessageId(),
+                    ackNum,
                     0, 0, 1,
                     Message.MessageDataTypes.ACK,
                     new ACKMessage(receivedMsg.getSequenceNumber())

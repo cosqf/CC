@@ -1,15 +1,11 @@
 package Mothership;
 
-import Message.MessageData;
-import Message.RequestMission;
+import Message.MissionMessage;
 import Message.UpdateMission;
 import Mission.Mission;
 import Utils.Point3D;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.PriorityQueue;
-import java.util.Random;
+import java.util.*;
 
 public class MothershipMissions {
     private final PriorityQueue<Mission> missionsToDo = new PriorityQueue<>();
@@ -52,12 +48,24 @@ public class MothershipMissions {
         return createRandomMissionToRover(-1);
     }
 
-    public MothershipMissions () {
+    public MothershipMissions (Mothership mothership) {
         Random rand = new Random();
         new Thread (() -> {
             try {
             while (true) {
-                missionsToDo.add(createRandomMission());
+                //System.out.println("\n--creating mission");
+                List<Integer> roverIDs = mothership.getRoverIDs().stream().toList();
+                boolean chanceOfSpecificMission = rand.nextInt(100) < 30;
+                if (!roverIDs.isEmpty() && chanceOfSpecificMission) {
+                    int id = roverIDs.get(rand.nextInt(roverIDs.size()));
+                    //System.out.println("specific mission to rover " + id+"\n");
+
+                    Mission mission = createRandomMissionToRover(id);
+                    missionsToDo.add(mission);
+                    mothership.sendMission(new MissionMessage(mission)); // send right away
+                } else missionsToDo.add(createRandomMission());
+
+                //System.out.println("mission created--\n");
                 int sleepFor = rand.nextInt(30,60); // new missions every 30 secs minimum, 60 seconds max
                 Thread.sleep(sleepFor * 1000L);
                 }

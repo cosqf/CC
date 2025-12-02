@@ -7,7 +7,7 @@ import Message.Message;
 public class RoverInfo {
     private final int roverId;
     private InetAddress roverIpAddress;
-    private int missionLinkUdpPort;
+    private int roverPort;
     private RoverTelemetryMessage lastTelemetryMessage;
     private long lastActiveTimestamp;
 
@@ -18,10 +18,10 @@ public class RoverInfo {
     // --- VARIÁVEL PARA CONTAR O ENVIO ---
     private int outputSequenceNumber = 0;
 
-    public RoverInfo (int roverId, InetAddress roverIpAddress, int missionLinkUdpPort) {
+    public RoverInfo (int roverId, InetAddress roverIpAddress, int roverPort) {
         this.roverId = roverId;
         this.roverIpAddress = roverIpAddress;
-        this.missionLinkUdpPort = missionLinkUdpPort;
+        this.roverPort = roverPort;
         this.lastTelemetryMessage = null;
         this.lastActiveTimestamp = System.currentTimeMillis();
     }
@@ -31,7 +31,6 @@ public class RoverInfo {
         return this.outputSequenceNumber++;
     }
 
-    // --- CACHE (O que te faltava) ---
     public Message getLastSentMessage() {
         return lastSentMessage;
     }
@@ -58,17 +57,15 @@ public class RoverInfo {
         this.lastTelemetryMessage = lastTelemetryMessage;
     }
 
-    public void setRoverConnection (InetAddress ip, int port) {
-        this.roverIpAddress = ip;
-        this.missionLinkUdpPort = port;
-    }
-
     public int getRoverId() {
         return roverId;
     }
 
     public InetAddress getRoverIpAddress(){
         return this.roverIpAddress;
+    }
+    public int getRoverPort() {
+        return this.roverPort;
     }
 
     public RoverTelemetryMessage getLastTelemetryMessage(){
