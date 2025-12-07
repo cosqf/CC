@@ -126,28 +126,18 @@ public class Rover {
     }
 
     public MessageUDP generateReply(MessageUDP receivedMsg, int ackNum) {
-        MessageUDP reply = null;
-
-        switch (receivedMsg.getMessageDataType()) {
-            case MISSION:
-                // reply = ....
-                break;
-            case ACK:
-                return null; // ACKs dont need any reply
-            default:
-                break;
+        if (receivedMsg.getMessageDataType() == MessageDataTypes.ACK) {
+            return null; // ACKs dont need any reply
         }
 
-        if (reply == null) { // no reply needed, send an ACK only
-            reply = new MessageUDP(receivedMsg.getSequenceNumber()+1,
-                    ackNum,
-                    0, 0, 1,
-                    Message.MessageDataTypes.ACK,
-                    new ACKMessage(receivedMsg.getSequenceNumber())
-            );
-        }
-
-        return reply;
+        // no reply needed, send an ACK only
+        return new MessageUDP(
+                0,
+                ackNum,
+                0, 0, 1,
+                MessageDataTypes.ACK,
+                new ACKMessage(receivedMsg.getSequenceNumber())
+        );
     }
     public void sendUpdateMission (UpdateMission mission) {
         this.roverConnection.sendUpdateMission(mission);

@@ -126,17 +126,11 @@ public class MessageUDP extends Message {
 
     @Override
     public String toString() {
-        String res= "UDP { " +
-                    "Seq=" + sequenceNumber +
-                    " | Ack=" + ackNumber +
-                    " | Type=" + messageDataType +
-                    " | Frag=" + (fragmentIndex + 1) + "/" + totalFragments +
-                    " | Data=";
-
-        int lenData = this.data.convertMessageDataToBytes().length;
-        if (lenData > 20) res = res.concat(" [too big for log]");
-        else res = res.concat(data.toString());
-        res = res.concat(" }");
-        return res;
+        return "UDP { " +
+                "Seq=" + sequenceNumber +
+                " | Ack=" + ackNumber +
+                " | Type=" + messageDataType +
+                " | Frag=" + (fragmentIndex + 1) + "/" + totalFragments +
+                " | Data=" + data + " }";
     }
 }

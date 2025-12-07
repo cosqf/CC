@@ -57,12 +57,12 @@ public class MothershipMissions {
                 //System.out.println("\n--creating mission");
                 List<Integer> roverIDs = mothership.getRoverIDs().stream().toList();
                 boolean chanceOfSpecificMission = rand.nextInt(100) < 30;
-                if (!roverIDs.isEmpty() && chanceOfSpecificMission) {
+                if (!roverIDs.isEmpty() && chanceOfSpecificMission) {   // create a mission to a specific rover
                     int id = roverIDs.get(rand.nextInt(roverIDs.size()));
                     //System.out.println("specific mission to rover " + id+"\n");
 
                     Mission mission = createRandomMissionToRover(id);
-                    missionsToDo.add(mission);
+                    activeMissions.put(mission.getMissionId(), mission);
                     mothership.sendMission(new MissionMessage(mission)); // send right away
                 } else missionsToDo.add(createRandomMission());
 
@@ -101,9 +101,4 @@ public class MothershipMissions {
         int id = m.getMissionId();
         activeMissions.put(id, m);
     }
-    /*
-    - create a mission specifically for a rover -> todo
-        a follow-up of another mission?
-        send it immediately to the rover.
-    */
 }

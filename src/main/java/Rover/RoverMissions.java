@@ -25,7 +25,7 @@ public class RoverMissions {
         this.missionsToDo = new PriorityBlockingQueue<>();
     }
     public void addMission(Mission mission) {
-        this.missionsToDo.put(mission);
+        if (!this.missionsToDo.contains(mission)) this.missionsToDo.put(mission);
     }
 
     final long   LOOP_INTERVAL = 1000; // update every second
@@ -425,15 +425,17 @@ public class RoverMissions {
                 extraData
         );
 
-        try {
-            rover.sendUpdateMission(updateMission);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        if (!missionUpdateTask.isDone()) {
+            try {
+                rover.sendUpdateMission(updateMission);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
 
-        if (progressPercent >= 100) {
-            if (missionUpdateTask != null) {
-                missionUpdateTask.cancel(false);
+            if (progressPercent >= 100) {
+                if (missionUpdateTask != null) {
+                    missionUpdateTask.cancel(false);
+                }
             }
         }
     }

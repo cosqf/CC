@@ -131,13 +131,11 @@ public class MissionLinkSender implements Runnable {
                     attempts++;
 
                     // 2. ENVIAR TODOS OS FRAGMENTOS
-                    for (int i = 0; i < fragments.size(); i++) {
-                        MessageUDP frag = fragments.get(i);
+                    for (MessageUDP frag : fragments) {
                         byte[] data = frag.convertMessageToBytes();
                         DatagramPacket packet = new DatagramPacket(data, data.length, ipAddress, port);
 
                         socket.send(packet);
-                        if (fragments.size() > 1) Thread.sleep(2); // Pausa se fragmentado
                     }
 
                     // --- LOGGING ---

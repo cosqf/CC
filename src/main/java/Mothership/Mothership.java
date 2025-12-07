@@ -61,7 +61,6 @@
 
         public MessageUDP generateReply(MessageUDP receivedMsg, int ackNum) {
             MessageUDP reply = null;
-            // Campos de fragmentação padrão para pacotes únicos
             int fragID = 0, fragIdx = 0, totalFrags = 1;
 
             switch (receivedMsg.getMessageDataType()) {
@@ -98,10 +97,8 @@
 
                     System.out.println("[Mothership] Choosing a new mission for Rover " + req.getIdRover());
                     Mission mission = this.mothershipMissions.getMission();
+                    if (mission == null) break;
 
-                    if (mission == null) {
-                        break;
-                    }
                     mission.setRoverId(req.getIdRover());
                     mothershipMissions.startMission(mission);
 

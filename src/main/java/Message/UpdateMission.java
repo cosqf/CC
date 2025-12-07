@@ -71,11 +71,19 @@ public class UpdateMission implements MessageData {
 
     @Override
     public String toString() {
-        return "UpdateMission { " +
-                "idMission = " + idMission +
-                ", idRover = " + idRover +
-                ", completionLevel = " + completionLevel +
-                ", extraData = " + Arrays.toString(extraData) +
-                '}';
+        String res = "UpdateMission { " +
+                    "idMission = " + idMission +
+                    ", idRover = " + idRover +
+                    ", completionLevel = " + completionLevel +
+                    ", extraData = ";
+
+        if (extraData.length > 50) {
+            String content = Arrays.toString(extraData);
+            content = content.substring(0, 47) + "...]";
+            res = res.concat(content);
+        }
+        else res = res.concat(Arrays.toString(extraData));
+        res = res.concat (" }");
+        return res;
     }
 }
