@@ -25,7 +25,6 @@ public class RoverTelemetryMessage implements MessageData{
         this.position = rover.getPosition();
         this.state = rover.getState();
         this.physicalStates = rover.getPhysicalStates();
-        this.physicalStates = rover.getPhysicalStates();
         this.batteryLevel = rover.getBatteryLevel();
         this.inventory = rover.getInventory();
     }
@@ -221,8 +220,6 @@ public class RoverTelemetryMessage implements MessageData{
         return lines;
     }
 
-
-
     public String printInventory() {
         return String.join(", ", this.inventory);
     }
@@ -232,5 +229,4 @@ public class RoverTelemetryMessage implements MessageData{
                 .map(PhysicalState::toString)
                 .toList());
     }
-
 }

@@ -11,7 +11,7 @@ import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 
 public class APIServer implements Runnable {
@@ -20,7 +20,7 @@ public class APIServer implements Runnable {
     private int port;
     private final Mothership mothership;
 
-    public APIServer(String ip, int port, Mothership ms){
+    public APIServer(String ip, int port, Mothership ms) {
         this.ip = ip;
         this.port = port;
         this.mothership = ms;
@@ -29,7 +29,7 @@ public class APIServer implements Runnable {
     @Override
     public void run() {
         try {
-            HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
+            HttpServer server = HttpServer.create(new InetSocketAddress(ip, port), 0);
 
             // REST endpoints
             server.createContext("/rovers", this::handleRoverInfo);
@@ -47,132 +47,74 @@ public class APIServer implements Runnable {
     }
 
     private void sendText(HttpExchange ex, String text) throws IOException {
-        ex.getResponseHeaders().add("Content-Type", "text/plain");
-        ex.sendResponseHeaders(200, text.length()); // 200 -> HTTP Status Code for OK
+        byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
+
+        ex.getResponseHeaders().add("Content-Type", "text/plain; charset=utf-8");
+        ex.sendResponseHeaders(200, bytes.length);
 
         OutputStream os = ex.getResponseBody();
-        os.write(text.getBytes());
+        os.write(bytes);
         os.close();
     }
 
-    private void handleRoverInfo(HttpExchange ex) throws IOException {
+    private <T> void handleCollection(HttpExchange ex, Collection<T> data, String emptyMessage,
+                                      java.util.function.Function<T, String> formatter) throws IOException {
         try {
-            Collection<RoverInfo> info = mothership.getRoverInfo();
+            StringBuilder sb = new StringBuilder();
 
-            StringBuilder textBuilder = new StringBuilder();
-
-            if(info.isEmpty()) {
-                textBuilder.append("No rovers connected, check again later.\n");
+            if (data.isEmpty()) {
+                sb.append(emptyMessage);
             } else {
-                for (RoverInfo i : info) {
-                    textBuilder.append(i.toStringForAPI());
+                for (T item : data) {
+                    sb.append(formatter.apply(item));
                 }
             }
-
-            String text = textBuilder.toString();
-
-            sendText(ex, text);
-
+            sendText(ex, sb.toString());
         } catch (Exception e) {
             e.printStackTrace();
             ex.sendResponseHeaders(500, -1);
             ex.close();
         }
+    }
+
+
+    private void handleRoverInfo(HttpExchange ex) throws IOException {
+        handleCollection(ex,
+                mothership.getRoverInfo(),
+                "No rovers connected, check again later.\n",
+                RoverInfo::toStringForAPI
+        );
     }
 
     private void handleActiveMissions(HttpExchange ex) throws IOException {
-        try {
-            Collection<Mission> info = mothership.getActiveMissions();
-
-            StringBuilder textBuilder = new StringBuilder();
-
-            if(info.isEmpty()) {
-                textBuilder.append("No active missions, check again later.\n");
-            } else {
-                for (Mission m : info) {
-                    textBuilder.append(m.toStringForAPI());
-                }
-            }
-
-            String text = textBuilder.toString();
-
-            sendText(ex, text);
-        } catch (Exception e) {
-            e.printStackTrace();
-            ex.sendResponseHeaders(500, -1);
-            ex.close();
-        }
+        handleCollection(ex,
+                mothership.getActiveMissions(),
+                "No active missions, check again later.\n",
+                Mission::toStringForAPI
+        );
     }
 
     private void handlePastMissions(HttpExchange ex) throws IOException {
-        try {
-            Collection<Mission> info = mothership.getPastMissions();
-
-            StringBuilder textBuilder = new StringBuilder();
-
-            if(info.isEmpty()) {
-                textBuilder.append("No finished missions yet, check again later.\n");
-            } else {
-                for (Mission m : info) {
-                    textBuilder.append(m.toStringForAPI());
-                }
-            }
-
-            String text = textBuilder.toString();
-
-            sendText(ex, text);
-        } catch (Exception e) {
-            e.printStackTrace();
-            ex.sendResponseHeaders(500, -1);
-            ex.close();
-        }
+        handleCollection(ex,
+                mothership.getPastMissions(),
+                "No finished missions yet, check again later.\n",
+                Mission::toStringForAPI
+        );
     }
 
     private void handleFutureMissions(HttpExchange ex) throws IOException {
-        try {
-            Collection<Mission> info = mothership.getFutureMissions();
-
-            StringBuilder textBuilder = new StringBuilder();
-
-            if(info.isEmpty()) {
-                textBuilder.append("No future missions queued, check again later.\n");
-            } else {
-                for (Mission m : info) {
-                    textBuilder.append(m.toStringForAPI());
-                }
-            }
-
-            String text = textBuilder.toString();
-
-            sendText(ex, text);
-        } catch (Exception e) {
-            e.printStackTrace();
-            ex.sendResponseHeaders(500, -1);
-            ex.close();
-        }
+        handleCollection(ex,
+                mothership.getFutureMissions(),
+                "No future missions queued, check again later.\n",
+                Mission::toStringForAPI
+        );
     }
 
     private void handleLastTelemetry(HttpExchange ex) throws IOException {
-        try {
-            ArrayList<RoverTelemetryMessage> info = mothership.getLastTelemetry();
-
-            StringBuilder textBuilder = new StringBuilder();
-
-            if(info.isEmpty()){
-                textBuilder.append("No telemetry messages have been sent yet, check again later.\n");
-            } else {
-                for (RoverTelemetryMessage i : info) {
-                    if (i != null) textBuilder.append(i.toStringForAPI());
-                }
-            }
-
-            String text = textBuilder.toString();
-
-            sendText(ex, text);
-        } catch (Exception e) {
-            e.printStackTrace();
-            ex.sendResponseHeaders(500, -1);
-            ex.close();
-        }
+        handleCollection(ex,
+                mothership.getLastTelemetry(),
+                "No telemetry messages have been sent yet, check again later.\n",
+                RoverTelemetryMessage::toStringForAPI
+        );
     }
 }

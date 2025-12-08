@@ -22,11 +22,11 @@ public class GroundControl {
         Scanner scanner = new Scanner(System.in);
 
         System.out.println("\nGroundControl connected to: " + baseUrl);
+        System.out.println("\n--- WELCOME ---");
 
         try {
             boolean running = true;
             while (running) {
-                System.out.println("\n--- WELCOME ---");
                 System.out.println("1. Check Active Rovers");
                 System.out.println("2. Check Active Missions");
                 System.out.println("3. Check Past Missions");
@@ -35,34 +35,40 @@ public class GroundControl {
                 System.out.println("0. Exit");
 
                 System.out.print("Enter option: ");
-                int option = scanner.nextInt();
-                scanner.nextLine(); // to consume leftover newline
+                String input = scanner.nextLine();
+                int option = -1;
+                try {
+                    option = Integer.parseInt(input);
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid input. Please enter a number: ");
+                    continue;
+                }
 
                 switch (option) {
                     case 1:
                         System.out.println("\nROVER INFO");
                         System.out.println(getResponse("/rovers"));
-                        optionMenu("/rovers");
+                        optionMenu("/rovers", scanner);
                         break;
                     case 2:
                         System.out.println("\nACTIVE MISSIONS");
                         System.out.println(getResponse("/missions/active"));
-                        optionMenu("/missions/active");
+                        optionMenu("/missions/active", scanner);
                         break;
                     case 3:
                         System.out.println("\nPAST MISSIONS");
                         System.out.println(getResponse("/missions/past"));
-                        optionMenu("/missions/past");
+                        optionMenu("/missions/past", scanner);
                         break;
                     case 4:
                         System.out.println("\nFUTURE MISSIONS");
                         System.out.println(getResponse("/missions/future"));
-                        optionMenu("/missions/future");
+                        optionMenu("/missions/future", scanner);
                         break;
                     case 5:
                         System.out.println("\nMOST RECENT TELEMETRY DATA");
                         System.out.println(getResponse("/telemetry"));
-                        optionMenu("/telemetry");
+                        optionMenu("/telemetry", scanner);
                         break;
                     case 0:
                         System.out.println("Exiting Ground Control...");
@@ -79,8 +85,7 @@ public class GroundControl {
         }
     }
 
-    private void optionMenu(String endpoint) {
-        Scanner sc = new Scanner(System.in);
+    private void optionMenu(String endpoint, Scanner sc) {
         try {
             boolean running = true;
             while (running) {
@@ -88,8 +93,14 @@ public class GroundControl {
                 System.out.println("0. Back");
 
                 System.out.print("Enter option: ");
-                int option = sc.nextInt();
-                sc.nextLine(); // to consume leftover newline
+                String input = sc.nextLine();
+                int option = -1;
+                try {
+                    option = Integer.parseInt(input);
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid input. Please enter a number: ");
+                    continue;
+                }
 
                 switch (option) {
                     case 1:
@@ -108,21 +119,22 @@ public class GroundControl {
         }
     }
 
-    private String getResponse(String endpoint) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + endpoint))
-                .GET()
-                .build();
+    private String getResponse(String endpoint) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + endpoint))
+                    .GET()
+                    .build();
 
-        HttpResponse<String> response =
-                client.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        if (response.statusCode() != 200) {
-            System.err.println("Error: received status code " + response.statusCode());
-            return null;
+            if (response.statusCode() != 200) {
+                return "Error: received status code " + response.statusCode();
+            }
+            return response.body();
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
         }
-
-        return response.body();
     }
 
     public static void main(String[] args) {
