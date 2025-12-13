@@ -1,11 +1,9 @@
 package Rover;
 
-import Utils.Point3D;
-
 import Message.*;
 import Message.Message.MessageDataTypes;
+import Utils.Point3D;
 import Utils.UDPPrint;
-
 
 import java.util.ArrayList;
 import java.util.List;
@@ -77,12 +75,10 @@ public class Rover {
         physicalStates.add(new PhysicalState("wheels", 100));
         physicalStates.add(new PhysicalState("camera", 80));
 
-        int roverId = 1; // Valor default caso te esqueças de passar argumento
+        int roverId = 1; //default value in case no argument is passed
 
         if (args.length > 0) {
             try {
-                // O argumento vem como String ("1"), temos de converter para int
-                // args[0] é o primeiro argumento da linha de comandos
                 roverId = Integer.parseInt(args[0].trim().replaceAll("[^0-9]", ""));
             } catch (NumberFormatException e) {
                 System.err.println("Warning: The ID for the Rover should be an int.");
@@ -106,7 +102,7 @@ public class Rover {
             rover.roverConnection.closeServer();
             return;
         }
-        UDPPrint.logSuccess("RCV", null, "ID Atribuído: " +rover.getId());
+        UDPPrint.logSuccess("RCV", null, "ID Assigned: " +rover.getId());
         rover.roverMissions.run();
         rover.roverConnection.sendTelemetry();
     }

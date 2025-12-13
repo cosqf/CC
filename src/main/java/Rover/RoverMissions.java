@@ -8,8 +8,6 @@ import Utils.UDPPrint;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.*;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class RoverMissions {
     private final Rover rover;
@@ -27,7 +25,7 @@ public class RoverMissions {
     }
     public void addMission(Mission mission) {
         if (!this.missionsToDo.contains(mission)){
-            UDPPrint.logSuccess("RCV", null, "NOVA MISSÃO ACEITE E GUARDADA!");
+            UDPPrint.logSuccess("RCV", null, "NEW MISSION ACCEPTED AND STORED!");
             this.missionsToDo.put(mission);
         }
     }
@@ -76,9 +74,8 @@ public class RoverMissions {
     }
 
     public long idle() throws InterruptedException {
-        System.out.println("in idle");
+        System.out.println("In idle");
 
-        // --- (Manter verificações de base, reparações e inventário iguais) ---
         if (!rover.getPosition().equals(rover.getBase().getPosition())) System.out.println("Idle but not at base!");
 
         if (doesAnyPartNeedsFixing()){
@@ -89,74 +86,63 @@ public class RoverMissions {
 
         List<String> inventory = rover.getInventory();
         if (!inventory.isEmpty()) {
-            System.out.println("cleaning inventory");
+            System.out.println("Cleaning inventory!");
             if(rover.getBase() != null)
                 inventory.forEach(item -> rover.getBase().addItem(item));
             this.rover.clearInventory();
         }
 
-        // Carregar se bateria baixa e sem missão (lógica preventiva)
         if ((currentMission == null || currentMission.isCompleted()) && rover.getBatteryLevel() < 50) {
             this.rover.setState(Rover.MissionState.CHARGING);
-            System.out.println("going to charge (preventive)!");
+            System.out.println("Going to charge!");
             return System.currentTimeMillis() + Math.round(timeToFullyCharge()) * 1000L;
         }
 
-        // --- NOVA LÓGICA DE DECISÃO ---
         if (currentMission == null || currentMission.isCompleted()) {
 
             if (missionsToDo.isEmpty()) {
                 connection.requestMission();
-                // Pequeno return para não bloquear a thread indefinidamente no take() se a rede falhar
-
             }
 
-            // 1. VARIÁVEL LOCAL: A missão está "em análise", ainda não foi aceite.
             Mission candidate = missionsToDo.take();
             System.out.println("Analyzing candidate Mission ID: " + candidate.getMissionId());
 
-            // 2. Validar Bateria na Candidata
             boolean willBatterySurvive = willBatterySurvive(candidate);
 
-            // CENÁRIO A: Missão Impossível (Bateria cheia e não chega)
-            // Nota: Usei >= 99 em vez de == 100 por segurança com doubles
+            // impossible mission
             if (!willBatterySurvive && this.rover.getBatteryLevel() >= 99) {
                 System.out.println("Can't do mission! Discarding ID " + candidate.getMissionId());
 
-                // Descarta a candidata. O this.currentMission continua a ser NULL.
                 connection.discardMission(candidate, rover.getId());
 
-                // Retorna imediatamente para pedir outra no próximo ciclo
                 return System.currentTimeMillis();
             }
 
-            // CENÁRIO B: Missão Aceite (mas precisa de carga)
+            // mission accepted, but needs to charge
             if (!willBatterySurvive) {
-                this.currentMission = candidate; // Aprovada! Guardamos no estado.
+                this.currentMission = candidate;
                 this.rover.setState(Rover.MissionState.CHARGING);
                 System.out.println("Mission accepted but needs charge. Charging...");
                 return System.currentTimeMillis() + Math.round(timeToFullyCharge() * 1000L);
             }
 
-            // CENÁRIO C: Missão Aceite (e pronta a arrancar)
+            // mission accepted
             this.currentMission = candidate; // Aprovada!
             System.out.println("Has mission! ID " + currentMission.getMissionId());
         }
 
-        // Se chegámos aqui, temos uma currentMission válida e bateria para ela
-        System.out.println("leaving idle, becoming on the way");
+        System.out.println("Leaving idle, becoming on the way!");
         rover.setState(Rover.MissionState.ON_THE_WAY);
         return (long) (System.currentTimeMillis() + timeBetweenPlaces(rover.getPosition(), currentMission.getAreaCoordinates()) * 1000L);
     }
 
     public long doMission (long busyUntil) throws InterruptedException {
-        System.out.println("in mission");
+        System.out.println("In mission");
         long currentTime = System.currentTimeMillis();
         Random random = new Random();
         while (currentTime <= busyUntil) {
             long timeElapsed = Math.min(busyUntil - currentTime, LOOP_INTERVAL);
             decrementBattery (timeElapsed);
-            // roam in mission area?
 
             // inventory management
             Mission.MissionType missionType = currentMission.getMissionType();
@@ -188,7 +174,7 @@ public class RoverMissions {
     }
 
     public void charge (long busyUntil) throws InterruptedException {
-        System.out.println("charging");
+        System.out.println("Charging!");
         long currentTime = System.currentTimeMillis();
 
         while (currentTime <= busyUntil) {
@@ -211,7 +197,7 @@ public class RoverMissions {
     }
 
     private long onTheWay(long busyUntil) throws InterruptedException {
-        System.out.println("on the way");
+        System.out.println("On the way!");
         long currentTime = System.currentTimeMillis();
         Point3D objective;
         if (currentMission.isCompleted()) objective = rover.getBase().getPosition();
@@ -260,7 +246,7 @@ public class RoverMissions {
     }
 
     public void repair (long busyUntil) throws InterruptedException {
-        System.out.println("repairing");
+        System.out.println("Repairing!");
         long currentTime = System.currentTimeMillis();
 
         while (currentTime <= busyUntil) {

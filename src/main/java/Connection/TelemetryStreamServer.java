@@ -1,12 +1,13 @@
 package Connection;
 
+import Message.Message;
+import Message.RoverTelemetryMessage;
+import Mothership.Mothership;
+
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import Message.Message;
-import Message.RoverTelemetryMessage;
-import Mothership.Mothership;
 
 public class TelemetryStreamServer implements Runnable {
     private int port;
@@ -45,18 +46,14 @@ public class TelemetryStreamServer implements Runnable {
                     mothership.updateRoverInfoWithTelemetry(receivedMsg);
 
                     if (receivedMsg.getMessageDataType() == Message.MessageDataTypes.ROVER_TELEMETRY) {
-                        // CORREÇÃO: Usa apenas o nome da classe
                         RoverTelemetryMessage tel = (RoverTelemetryMessage) receivedMsg.getMessageData();
                         currentRoverId = tel.getId();
                     }
                 }
             }
         } catch (IOException e) {
-            // Apenas o essencial
             if (currentRoverId != -1) {
                 mothership.removeRover(currentRoverId);
-            } else {
-                // Opcional: System.out.println("[TS] Ligação anónima caiu.");
             }
         }
     }

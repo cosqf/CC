@@ -1,9 +1,6 @@
 package Message;
 
-import Rover.PhysicalState;
-
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 
 public class RoverInitMessage implements MessageData{
     private int id = -1;

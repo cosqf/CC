@@ -1,14 +1,11 @@
     package Mothership;
 
     import Message.*;
-
     import Mission.Mission;
+
     import java.net.InetAddress;
     import java.util.*;
     import java.util.concurrent.ConcurrentHashMap;
-
-    import Message.*;
-    import Message.MissionMessage;
 
     public class Mothership { // controller
         private final Map<Integer, RoverInfo> rovers = new ConcurrentHashMap<>();
@@ -22,7 +19,6 @@
             mothership.mothershipMissions = new MothershipMissions(mothership);
         }
 
-    // --- LÓGICA DE TELEMETRIA ---
     public void updateRoverInfoWithTelemetry(Message msg) {
         if (msg.getMessageDataType() != Message.MessageDataTypes.ROVER_TELEMETRY) return;
 
@@ -34,7 +30,7 @@
 
         roverInfo.updateLastTelemetryMessage(telemetry);
         roverInfo.updateLastActiveTimestamp(System.currentTimeMillis());
-        System.out.println("[Mothership] Telemetria updated for Rover " + roverId);
+        System.out.println("[Mothership] Telemetry updated for Rover " + roverId);
     }
 
     public synchronized void storeRoverInfoConnection (Message msg, InetAddress ip, int port) {
@@ -52,6 +48,7 @@
 
         roverInfo.updateLastActiveTimestamp(System.currentTimeMillis());
     }
+
     public void sendMission(MissionMessage msg) {
         connection.sendMission(msg);
     }
@@ -62,11 +59,9 @@
         Message.MessageDataTypes messageType = receivedMsg.getMessageDataType();
 
         switch (messageType) {
-            // --- PREVENÇÃO DE LOOP ---
             case ACK:
-                return null; // Não responder a ACKs para evitar loops infinitos
+                return null;
 
-            // --- INICIALIZAÇÃO ---
             case ROVER_INIT:
                 RoverInitMessage initMsg = (RoverInitMessage) receivedMsg.getMessageData();
                 int idParaRegistar;
@@ -76,7 +71,6 @@
                 if (rover.getLastTelemetryMessage() != null) idParaRegistar = -1; // telemetry not being null means it already initiated
                 else idParaRegistar = givenID;
 
-                // Obter RoverInfo para usar o contador DELE
                 RoverInfo rInfoInit = this.rovers.get(idParaRegistar);
                 int seqInit = (rInfoInit != null) ? rInfoInit.getAndIncrementOutputSequenceNumber() : 0;
 
@@ -99,7 +93,6 @@
                 mission.setRoverId(req.getIdRover());
                 mothershipMissions.startMission(mission);
 
-                // Usar contador de sequência específico deste Rover
                 RoverInfo rInfoMission = this.rovers.get(req.getIdRover());
                 int seqMission = (rInfoMission != null) ? rInfoMission.getAndIncrementOutputSequenceNumber() : 0;
 
@@ -174,7 +167,6 @@
         return res;
     }
 
-    // retorna info de um rover especifico, por ID
     public RoverInfo getRoverById(int id) {
         return this.rovers.get(id);
     }

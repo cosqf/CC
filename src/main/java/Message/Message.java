@@ -1,11 +1,9 @@
 package Message;
 
-
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-
 
 public class Message {
     protected static int msgIds = 1;
@@ -35,8 +33,6 @@ public class Message {
         this.data = msg.data;
     }
 
-
-    // Construtor para Deserialização (ID já existe)
     public Message(int messageId, MessageDataTypes type, MessageData data) {
         this.messageId = messageId;
         this.messageDataType = type;
@@ -84,7 +80,6 @@ public class Message {
         return new Message(messageId, dataType, mData);
     }
 
-    // Método auxiliar partilhado com a filha UDP
     public static MessageData parseMessageData(MessageDataTypes type, byte[] dataBytes) {
         if (dataBytes == null) return null;
         return switch (type) {
@@ -98,7 +93,6 @@ public class Message {
         };
     }
 
-    // GETTERS
     public int getMessageId() { return messageId; }
     public MessageDataTypes getMessageDataType() { return messageDataType; }
     public MessageData getMessageData() { return data; }

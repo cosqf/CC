@@ -11,11 +11,9 @@ public class RoverInfo {
     private RoverTelemetryMessage lastTelemetryMessage;
     private long lastActiveTimestamp;
 
-    // Variáveis de Controlo
     private int lastProcessedSequenceNumber = -1;
     private MessageUDP lastSentMessage = null;
 
-    // --- VARIÁVEL PARA CONTAR O ENVIO ---
     private int outputSequenceNumber = 0;
 
     public RoverInfo (int roverId, InetAddress roverIpAddress, int roverPort) {
@@ -26,7 +24,6 @@ public class RoverInfo {
         this.lastActiveTimestamp = System.currentTimeMillis();
     }
 
-    // --- SEQUÊNCIA DE SAÍDA (Novo) ---
     public int getAndIncrementOutputSequenceNumber() {
         return this.outputSequenceNumber++;
     }
@@ -39,7 +36,6 @@ public class RoverInfo {
         this.lastSentMessage = msg;
     }
 
-    // --- Getters e Setters Normais ---
     public int getLastProcessedSequenceNumber() {
         return lastProcessedSequenceNumber;
     }
@@ -48,7 +44,6 @@ public class RoverInfo {
         this.lastProcessedSequenceNumber = seq;
     }
 
-    // --- Outros Métodos ---
     public void updateLastActiveTimestamp(long lastActiveTimestamp) {
         this.lastActiveTimestamp = lastActiveTimestamp;
     }
@@ -72,8 +67,6 @@ public class RoverInfo {
         return this.lastTelemetryMessage;
     }
 
-
-
     public String toStringForAPI() {
         final int WIDTH = 80;
 
@@ -90,8 +83,8 @@ public class RoverInfo {
         String statusLine = String.format("| Status -> %-" + (WIDTH - 14) + "s |\n", status);
         String batteryLine = String.format("| Battery -> %-" + (WIDTH - 15) + "s |\n", battery);
 
-        long time = (System.currentTimeMillis()-this.lastActiveTimestamp)/1000;
-        String lastActive = String.format("| Last Active -> %d seconds ago %-" + (WIDTH - 32 - ((int) Math.log10(Math.abs(time)) + 1)) + "s |\n", time, " ");
+        String time = (System.currentTimeMillis()-this.lastActiveTimestamp)/1000 + " seconds ago";
+        String lastActive = String.format("| Last Active -> %-" + (WIDTH - 19) + "s |\n", time);
 
         return SEPARATOR_LINE +
                 rover +

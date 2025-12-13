@@ -1,10 +1,8 @@
 package Connection;
 
 import Message.MessageUDP;
-import Message.RoverInitMessage;
 import Message.Package;
 import Rover.Rover;
-import Utils.UDPPrint;
 
 import java.io.IOException;
 import java.net.*;
@@ -70,8 +68,6 @@ public class MissionLinkClient implements Runnable, MissionLinkGeneric {
                 }
                 break;
             default:
-                // Outras mensagens (como ACKs puros) ficam em log normal ou silêncio
-                // WiresharkLogger.log("RCV", msg, "ACK/Outro recebido", false);
                 break;
         }
         rover.processMessage(msg.getMessageDataType(), msg.getMessageData());

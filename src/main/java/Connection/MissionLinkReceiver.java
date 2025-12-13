@@ -1,7 +1,6 @@
 package Connection;
 
 import Message.Message;
-
 import Message.MessageUDP;
 import Utils.UDPPrint;
 
@@ -9,7 +8,6 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.util.*;
-
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MissionLinkReceiver implements Runnable {
@@ -17,7 +15,6 @@ public class MissionLinkReceiver implements Runnable {
     private final MissionLinkGeneric ML;
     private boolean running = true;
     private final MissionLinkSender sender;
-    // Buffer de Remontagem
     private final Map<Integer, List<MessageUDP>> reassemblyBuffer = new ConcurrentHashMap<>();
 
     public MissionLinkReceiver(DatagramSocket socket,  MissionLinkGeneric ML, MissionLinkSender sender) {
@@ -67,7 +64,6 @@ public class MissionLinkReceiver implements Runnable {
 
                     if (!alreadyExists) {
                         parts.add(receivedMsg);
-                        // Só verificamos se está completo se adicionámos uma peça nova
                         if (parts.size() == receivedMsg.getTotalFragments()) {
                             // System.out.println("[Receiver] Reassembling ID " + fragID + "...");
                             finalMessage = FragManager.reassembleMessage(parts);

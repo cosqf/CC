@@ -12,7 +12,6 @@ public class RequestMission implements MessageData {
     public int getIdRover() {
         return this.idRover;
     }
-    // ----------------------------
 
     @Override
     public byte[] convertMessageDataToBytes() {

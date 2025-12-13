@@ -11,8 +11,6 @@ import Message.RoverTelemetryMessage;
 import Message.RoverInitMessage;
 import Mission.Mission;
 
-import java.util.Arrays;
-
 public class RoverConnection {
     private final Rover rover;
     private MissionLinkClient missionLinkClient;
@@ -29,7 +27,7 @@ public class RoverConnection {
         MessageUDP msg = new MessageUDP(
                 seq,
                 ackToSend,
-                0, 0, 1,   // Fragmentação (0, 0, 1) vem a seguir
+                0, 0, 1,
                 MessageUDP.MessageDataTypes.REQUEST_MISSION,
                 req
         );

@@ -5,14 +5,11 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-// MENSAGEM UDP (Estende Message)
 public class MessageUDP extends Message {
 
-    // --- CAMPOS EXTRAS UDP ---
     private final int sequenceNumber;
     private final int ackNumber;
 
-    // Fragmentação
     private final int fragmentID;
     private final int fragmentIndex;
     private final int totalFragments;
@@ -36,7 +33,6 @@ public class MessageUDP extends Message {
         this.totalFragments = totalFrags;
     }
 
-    // Construtor privado para reconstrução
     private MessageUDP(int msgId, int seq, int ack, int fragID, int fragIdx, int totalFrags,
                        MessageDataTypes type, MessageData data) {
         super(msgId, type, data);
@@ -53,18 +49,15 @@ public class MessageUDP extends Message {
         try (ByteArrayOutputStream contentOutBytes = new ByteArrayOutputStream();
              DataOutputStream contentOut = new DataOutputStream(contentOutBytes)) {
 
-            // HEADER UDP
             contentOut.writeInt(sequenceNumber);
             contentOut.writeInt(messageId);
             contentOut.writeInt(ackNumber);
             contentOut.writeInt(messageDataType.ordinal());
 
-            // Fragmentação
             contentOut.writeInt(fragmentID);
             contentOut.writeInt(fragmentIndex);
             contentOut.writeInt(totalFragments);
 
-            // PAYLOAD
             byte[] dataBytes = data.convertMessageDataToBytes();
             contentOut.write(dataBytes);
 
@@ -95,18 +88,15 @@ public class MessageUDP extends Message {
         int dataLen = totalLength - headerSize;
 
         if (dataLen < 0) {
-            throw new RuntimeException("Pacote corrompido: Header maior que tamanho total.");
+            throw new RuntimeException("Corrupted Packet: Header larger than total size.");
         }
 
         byte[] dataBytes = new byte[dataLen];
         buffer.get(dataBytes, 0, dataLen);
 
         MessageData mData;
-        // Se for um fragmento (parte de um todo), NÃO tentamos converter
-        // Guardamos apenas os bytes brutos dentro de um FragData
         if (totalFragments > 1)  mData = new FragData(dataBytes);
         else {
-            // Se for pacote inteiro (1/1), convertemos normalmente para Missão/Telemetria
             mData = parseMessageData(dataType, dataBytes);
         }
 
@@ -115,7 +105,6 @@ public class MessageUDP extends Message {
                 dataType, mData);
     }
 
-    // Getters
     public int getSequenceNumber() { return sequenceNumber; }
     public int getAckNumber() { return ackNumber; }
     public int getFragmentID() { return fragmentID; }

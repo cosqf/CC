@@ -2,7 +2,6 @@ package Mission;
 
 import Utils.Point3D;
 
-
 public class Mission implements Comparable<Mission> {
     private final int missionId;
     private int roverId;
@@ -14,7 +13,6 @@ public class Mission implements Comparable<Mission> {
     private final boolean isUrgent;
     private boolean isCompleted = false;
     private static final java.util.concurrent.atomic.AtomicInteger counter = new java.util.concurrent.atomic.AtomicInteger(1);
-
 
     public enum MissionType {
         EXPLORE,
